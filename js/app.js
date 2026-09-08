@@ -11,14 +11,14 @@ let chapI=0, ctxSel='', editId=null, photoTmp=null;
 const _EDITEUR = window.location.pathname.includes('editeur');
 const _INDEX   = !_EDITEUR;
 
-// Sur l'éditeur, charger le projet depuis sessionStorage IMMÉDIATEMENT
+// Sur l'éditeur, charger le projet depuis localStorage IMMÉDIATEMENT
 let _baselineSession = null; // gardé pour compatibilité
 let _snapshotOuverture = null; // total de mes chapitres au dernier snapshot (ouverture ou sauvegarde)
 let _motsDejaAujourdhui = 0; // mots déjà enregistrés aujourd'hui dans stats_ecriture (lu au chargement)
 let _collabPretResolve = null;
 const _collabPret = new Promise(resolve => { _collabPretResolve = resolve; });
 if(_EDITEUR){
-  const _raw = sessionStorage.getItem('encre_projet_actif');
+  const _raw = localStorage.getItem('encre_projet_actif');
   if(!_raw){ window.location.href = 'index.html'; }
   else {
     try {
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }, 800);
     // ─────────────────────────────────────────────────────
     // Remettre tous les chapitres à "pas modifié" au chargement
-    // Évite que des _dirty résiduels du sessionStorage déclenchent des saves fantômes
+    // Évite que des _dirty résiduels du localStorage déclenchent des saves fantômes
     P.chapitres.forEach(ch => { ch._dirty = false; });
     renderSidebar(); updateSbProjet();
     // loadChap est appelé APRÈS le chargement async des auteur_id (voir bloc collab plus bas)
@@ -3122,7 +3122,7 @@ async function afficherApp(){
       }
 
       _collabPretResolve(); // signaler que tout est prêt
-      sessionStorage.setItem('encre_projet_actif', JSON.stringify({ projet: P, chapI }));
+      localStorage.setItem('encre_projet_actif', JSON.stringify({ projet: P, chapI }));
       renderSidebar();
       loadChap(chapI);
     })();
@@ -3150,11 +3150,46 @@ function setSaveStatus(s){
     el.title='Erreur de sauvegarde';
     el.textContent='☁ ✗';
   }
+  else if(s==='offline'){
+    el.style.color='#c4922a';
+    el.title='Hors ligne — le brouillon reste enregistré sur cet appareil, la sauvegarde cloud reprendra au retour du réseau';
+    el.textContent='⚡ Hors ligne';
+  }
   else {
     el.style.color='#c4a87a';
     el.title='Non sauvegardé';
     el.textContent='☁ ●';
   }
+}
+
+// ── Hors ligne : indicateur + reprise auto de la sauvegarde cloud ──
+window.addEventListener('offline', () => setSaveStatus('offline'));
+window.addEventListener('online', () => {
+  if(!_EDITEUR){ return; }
+  setSaveStatus(P.chapitres?.some(ch => ch._dirty) ? 'pending' : 'ok');
+  if(sbUser && P.projet_cloud_id && P.chapitres?.some(ch => ch._dirty)){
+    sauvegarderCloud();
+  }
+});
+if(typeof navigator!=='undefined' && navigator.onLine===false && _EDITEUR){
+  setTimeout(() => setSaveStatus('offline'), 0);
+}
+
+// ── Bannière "nouvelle version disponible" (mise à jour du service worker) ──
+function afficherBanniereMAJ(reg){
+  if(document.getElementById('maj-banniere')) return;
+  const b = document.createElement('div');
+  b.id = 'maj-banniere';
+  b.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1a1410;color:#e8d9c0;font-family:"Crimson Pro",serif;font-size:14px;padding:10px 14px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.35);z-index:99999;display:flex;align-items:center;gap:12px;';
+  b.innerHTML = `<span>Nouvelle version disponible.</span>
+    <button id="maj-btn" style="background:var(--accent,#8b3a2a);color:#fff;border:none;border-radius:5px;padding:5px 12px;font-family:'Crimson Pro',serif;font-size:13px;cursor:pointer;">Recharger</button>
+    <button id="maj-fermer" style="background:none;border:none;color:#a09080;font-size:16px;cursor:pointer;line-height:1;">×</button>`;
+  document.body.appendChild(b);
+  document.getElementById('maj-btn').onclick = () => {
+    (reg.waiting || reg.installing)?.postMessage('skipWaiting');
+    b.remove();
+  };
+  document.getElementById('maj-fermer').onclick = () => b.remove();
 }
 function setLtStatus(s){
   const el = document.getElementById('lt-badge');
@@ -3172,6 +3207,9 @@ function setNavActive(id){
 async function seDeconnecter(){
   await sb.auth.signOut();
   sbUser = null;
+  // Le projet actif est en localStorage (persiste hors ligne) — l'effacer à la
+  // déconnexion pour ne pas laisser le dernier manuscrit lisible sur un poste partagé.
+  try { localStorage.removeItem('encre_projet_actif'); } catch(e) {}
   location.reload();
 }
 
@@ -3254,6 +3292,33 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 });
 
+// ── Mode hors ligne (PWA) ──────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // Une nouvelle version est prête (installée mais pas encore active) :
+      // prévenir plutôt que de rester bloqué dessus (voir CHANGELOG v7→v8).
+      if(reg.waiting) afficherBanniereMAJ(reg);
+      reg.addEventListener('updatefound', () => {
+        const neuf = reg.installing;
+        if(!neuf) return;
+        neuf.addEventListener('statechange', () => {
+          if(neuf.state === 'installed' && navigator.serviceWorker.controller) afficherBanniereMAJ(reg);
+        });
+      });
+    }).catch(err => console.warn('[sw] enregistrement échoué :', err));
+  });
+  let _rechargeDejaDeclenche = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if(_rechargeDejaDeclenche) return;
+    _rechargeDejaDeclenche = true;
+    location.reload();
+  });
+}
+// Réduit le risque que le navigateur efface les données hors ligne (localStorage,
+// cache du service worker) faute d'espace disque.
+if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{});
+
 // ── SAUVEGARDER DANS LE CLOUD ─────────────────────────────
 async function sauvegarderCloud(){
   if(!sbUser){ flash('Non connecté'); return; }
@@ -3269,7 +3334,7 @@ async function sauvegarderCloud(){
         const local = P.chapitres.find(c => c.id === ch.id);
         if(local && ch.auteur_id) local.auteur_id = ch.auteur_id;
       });
-      sessionStorage.setItem('encre_projet_actif', JSON.stringify({ projet: P, chapI }));
+      localStorage.setItem('encre_projet_actif', JSON.stringify({ projet: P, chapI }));
       // Re-appliquer le verrou visuel
       appliquerVerrouEditeur();
       renderSidebar();
@@ -3309,7 +3374,7 @@ async function sauvegarderCloud(){
   if(!P.projet_cloud_id){ 
     if(!P._collab) { flash('Projet non sauvegardé dans le cloud'); return; }
   } else {
-  // _dirty peut être true ou undefined (chapitres chargés depuis sessionStorage sans _dirty)
+  // _dirty peut être true ou undefined (chapitres chargés depuis localStorage sans _dirty)
   const chapsDirty = P.chapitres.filter(ch => 
     ch._dirty === true && 
     ch.contenu !== undefined &&
@@ -3417,8 +3482,8 @@ async function sauvegarderCloud(){
       .forEach(k => localStorage.removeItem(k));
   } catch(e) {}
   renderSidebar();
-  // Mettre à jour le sessionStorage pour rester en sync
-  sessionStorage.setItem('encre_projet_actif', JSON.stringify({ projet: P, chapI }));
+  // Mettre à jour le localStorage pour rester en sync
+  localStorage.setItem('encre_projet_actif', JSON.stringify({ projet: P, chapI }));
   majStatsProfilCloud();
 }
 
@@ -3646,7 +3711,7 @@ async function chargerProjetCloud(row){
     projet._totalMotsSauve = (projet.chapitres||[]).reduce((s,ch)=>s+(ch.mots||0),0);
   }
 
-  sessionStorage.setItem('encre_projet_actif', JSON.stringify({ projet, chapI: 0 }));
+  localStorage.setItem('encre_projet_actif', JSON.stringify({ projet, chapI: 0 }));
   window.location.href = 'editeur.html';
 }
 

@@ -23,8 +23,19 @@ html.dark ::-webkit-scrollbar-thumb { background: var(--paper3); border-radius: 
 /* Éditeur — fond légèrement différent du papier pour le confort */
 html.dark #editor { color: var(--ink); }
 
-/* Topbar reste sombre dans les deux modes */
-html.dark #topbar { background: #0e0c0a; }
+/* Ces barres/menus restent sombres dans les deux modes (comme #topbar) :
+   sans ça, background:var(--ink) devient clair en mode nuit (--ink s'inverse)
+   et le texte clair prévu pour un fond sombre devient illisible dessus. */
+html.dark #topbar,
+html.dark #ctx,
+html.dark #sb,
+html.dark #mobile-toast,
+html.dark #mobile-nav,
+html.dark #db-topbar,
+html.dark #gantt-tooltip { background: #0e0c0a; }
+
+/* Survol du menu contextuel : même raison, var(--ink2) devient clair en mode nuit */
+html.dark .cxi:hover { background: #2a2420; }
 
 /* Modales et overlays */
 html.dark #modal-overlay { background: rgba(0,0,0,.6); }
@@ -59,6 +70,10 @@ html.dark #s-msg { color: var(--ink2); }
 
 /* Bar chart tooltip (index) */
 html.dark .bar-fill .bar-tip { background: #1a1612; color: #e8d9c0; }
+
+/* Surlignage "Corriger" (LanguageTool) : fond jaune clair fixe, le texte
+   hérite normalement de --ink (clair en mode nuit) → illisible sans ça */
+html.dark .lt-highlight { color: #2c2416; }
 
 /* Save status */
 html.dark #save-status { color: var(--ink3); }

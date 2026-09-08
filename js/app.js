@@ -4520,7 +4520,7 @@ function renderGantt(){
   if(!document.getElementById('gantt-tooltip')){
     const tt = document.createElement('div');
     tt.id = 'gantt-tooltip';
-    tt.style.cssText = 'position:fixed;background:var(--ink1);color:var(--paper2);padding:4px 10px;border-radius:6px;font-family:"JetBrains Mono",monospace;font-size:11px;pointer-events:none;z-index:9999;display:none;';
+    tt.style.cssText = 'position:fixed;background:var(--ink);color:#e8d9c0;padding:4px 10px;border-radius:6px;font-family:"JetBrains Mono",monospace;font-size:11px;pointer-events:none;z-index:9999;display:none;';
     document.body.appendChild(tt);
   }
 
@@ -5491,7 +5491,7 @@ async function ouvrirCollabModal(projetId, e){
 
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <h3 style="font-family:'Crimson Pro',serif;font-size:20px;color:var(--ink1);margin:0">Collaborateurs — ${row.nom}</h3>
+      <h3 style="font-family:'Crimson Pro',serif;font-size:20px;color:var(--ink);margin:0">Collaborateurs — ${row.nom}</h3>
       <button onclick="fermerCollabModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--ink4)">✕</button>
     </div>
     <div style="font-size:13px;color:var(--ink3);font-style:italic;margin-bottom:16px;font-family:'Crimson Pro',serif;">

@@ -2637,159 +2637,182 @@ async function exportPdf(){
   btn.textContent='→ PDF'; btn.disabled=false;
 }
 
-async function exportDocx(){
-  save(); // S'assurer que le chapitre actuel est sauvegardé avant export
-  save();
-  const btn=document.getElementById('btn-docx');
-  btn.textContent='→ Génération…'; btn.disabled=true;
-  try{
-    if(typeof JSZip==='undefined') throw new Error('JSZip non chargé — vérifiez votre connexion internet.');
+// ── Construit le .docx (styles Word, typographie, bulles texto) et retourne le blob ──
+// Partagé par l'export .docx classique et l'envoi vers l'Enlumineur.
+async function construireDocxBlob(){
+  if(typeof JSZip==='undefined') throw new Error('JSZip non chargé — vérifiez votre connexion internet.');
 
-    // ── Helpers XML ──
-    const x=(tag,attrs,inner)=>{
-      const a=Object.entries(attrs||{}).map(([k,v])=>` ${k}="${v}"`).join('');
-      return inner===undefined?`<${tag}${a}/>`:`<${tag}${a}>${inner}</${tag}>`;
-    };
-    const esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // ── Helpers XML ──
+  const x=(tag,attrs,inner)=>{
+    const a=Object.entries(attrs||{}).map(([k,v])=>` ${k}="${v}"`).join('');
+    return inner===undefined?`<${tag}${a}/>`:`<${tag}${a}>${inner}</${tag}>`;
+  };
+  const esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-    // ── Convertir nœuds HTML en runs Word XML ──
-    function nodeToRuns(node, bold=false, italic=false, underline=false){
-      if(node.nodeType===3){
-        const txt=node.textContent;
-        if(!txt) return '';
-        let rPr='';
-        if(bold) rPr+='<w:b/>';
-        if(italic) rPr+='<w:i/>';
-        if(underline) rPr+='<w:u w:val="single"/>';
-        rPr+=`<w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="24"/>`;
-        return x('w:r',{},x('w:rPr',{},rPr)+x('w:t',{'xml:space':'preserve'},esc2(txt)));
-      }
-      const tag=node.nodeName;
-      const b2=bold||(tag==='B'||tag==='STRONG');
-      const i2=italic||(tag==='I'||tag==='EM');
-      const u2=underline||(tag==='U');
-      return Array.from(node.childNodes).map(c=>nodeToRuns(c,b2,i2,u2)).join('');
+  // ── Convertir nœuds HTML en runs Word XML ──
+  function nodeToRuns(node, bold=false, italic=false, underline=false){
+    if(node.nodeType===3){
+      const txt=node.textContent;
+      if(!txt) return '';
+      let rPr='';
+      if(bold) rPr+='<w:b/>';
+      if(italic) rPr+='<w:i/>';
+      if(underline) rPr+='<w:u w:val="single"/>';
+      rPr+=`<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>`;
+      return x('w:r',{},x('w:rPr',{},rPr)+x('w:t',{'xml:space':'preserve'},esc2(txt)));
     }
+    const tag=node.nodeName;
+    const b2=bold||(tag==='B'||tag==='STRONG');
+    const i2=italic||(tag==='I'||tag==='EM');
+    const u2=underline||(tag==='U');
+    return Array.from(node.childNodes).map(c=>nodeToRuns(c,b2,i2,u2)).join('');
+  }
 
-    // ── Construire les paragraphes du corps ──
-    function htmlToParagraphs(html, indentFirst=true){
-      const div=document.createElement('div');
-      div.innerHTML=html||'';
-      normaliserTypoNode(div);
-      const paras=[];
-      function pTxt(txt,indent){
-        const pPr=indent?'<w:ind w:firstLine="720"/><w:spacing w:after="200"/>':'<w:spacing w:after="200"/>';
-        return x('w:p',{},x('w:pPr',{},pPr)+x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="24"/>') +x('w:t',{'xml:space':'preserve'},esc2(txt))));
+  // ── Construire les paragraphes du corps ──
+  function htmlToParagraphs(html, indentFirst=true){
+    const div=document.createElement('div');
+    div.innerHTML=html||'';
+    normaliserTypoNode(div);
+    const paras=[];
+    function pTxt(txt,indent){
+      const pPr=indent?'<w:ind w:firstLine="720"/><w:spacing w:after="200"/>':'<w:spacing w:after="200"/>';
+      return x('w:p',{},x('w:pPr',{},pPr)+x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>') +x('w:t',{'xml:space':'preserve'},esc2(txt))));
+    }
+    function pSimple(txt){
+      return x('w:p',{},x('w:pPr',{},'<w:spacing w:after="100"/>') +x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>') +x('w:t',{'xml:space':'preserve'},esc2(txt))));
+    }
+    // Paragraphe en texte masqué Word : reste lisible par l'Enlumineur (le texte
+    // brut du .docx est inchangé) mais ne s'affiche pas à la lecture normale.
+    function pCache(txt){
+      return x('w:p',{},x('w:pPr',{},'<w:spacing w:after="0"/>')+x('w:r',{},x('w:rPr',{},'<w:vanish/><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>')+x('w:t',{'xml:space':'preserve'},esc2(txt))));
+    }
+    // Étiquette du nom, au-dessus de la bulle
+    function pNomTexto(nom,cote){
+      const align=cote==='droite'?'right':'left';
+      const couleur=cote==='droite'?'2A5A8A':'6B5A4E';
+      return x('w:p',{},x('w:pPr',{},`<w:jc w:val="${align}"/><w:spacing w:after="40"/>`)+x('w:r',{},x('w:rPr',{},`<w:b/><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="18"/><w:color w:val="${couleur}"/>`)+x('w:t',{'xml:space':'preserve'},esc2(nom))));
+    }
+    // Ligne de la bulle : encadré ombré, aligné selon le côté (visuel "message texto" jouable dans Word)
+    function pBulleTexto(txt,cote){
+      const align=cote==='droite'?'right':'left';
+      const fill=cote==='droite'?'D4E8FF':'EDE8DF';
+      const couleur=cote==='droite'?'1A3A5C':'3D3028';
+      const indAttr=cote==='droite'?'w:left="2160"':'w:right="2160"';
+      const pPr=`<w:jc w:val="${align}"/><w:ind ${indAttr}/><w:spacing w:after="60"/>`+
+        `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`+
+        `<w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="${fill}"/><w:bottom w:val="single" w:sz="4" w:space="4" w:color="${fill}"/><w:left w:val="single" w:sz="4" w:space="8" w:color="${fill}"/><w:right w:val="single" w:sz="4" w:space="8" w:color="${fill}"/></w:pBdr>`;
+      return x('w:p',{},x('w:pPr',{},pPr)+x('w:r',{},x('w:rPr',{},`<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="22"/><w:color w:val="${couleur}"/>`)+x('w:t',{'xml:space':'preserve'},esc2(txt))));
+    }
+    div.childNodes.forEach(node=>{
+      // Bloc texto → bulle visuelle dans Word + marqueurs ##droite/##gauche/##fin
+      // conservés en texte masqué pour que l'export vers l'Enlumineur continue de fonctionner.
+      if(node.nodeType===1&&node.classList&&node.classList.contains('texto-bloc')){
+        const cote=node.getAttribute('data-texto')||'gauche';
+        const nom=node.querySelector('.texto-nom')?.textContent?.trim()||'';
+        const msg=node.querySelector('.texto-msg')?.innerText?.trim()||'';
+        paras.push(pNomTexto(nom||'…',cote));
+        paras.push(pCache(`##${cote}:${nom}`));
+        const lignes=msg.split('\n').filter(l=>l.trim());
+        if(!lignes.length) lignes.push('…');
+        lignes.forEach(l=>paras.push(pBulleTexto(l.trim(),cote)));
+        paras.push(pCache('##fin'));
+        paras.push(x('w:p',{},x('w:pPr',{},'<w:spacing w:after="100"/>')));
+        return;
       }
-      function pSimple(txt){
-        return x('w:p',{},x('w:pPr',{},'<w:spacing w:after="100"/>') +x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="24"/>') +x('w:t',{'xml:space':'preserve'},esc2(txt))));
+      // Noeud texte nu
+      if(node.nodeType===3){
+        const txt=node.textContent.trim();
+        if(!txt) return;
+        paras.push(pTxt(txt, indentFirst));
+        return;
       }
-      div.childNodes.forEach(node=>{
-        // Bloc texto → syntaxe Thermidor
-        if(node.nodeType===1&&node.classList&&node.classList.contains('texto-bloc')){
-          const cote=node.getAttribute('data-texto')||'gauche';
-          const nom=node.querySelector('.texto-nom')?.textContent?.trim()||'';
-          const msg=node.querySelector('.texto-msg')?.innerText?.trim()||'';
-          paras.push(pSimple(`##${cote}:${nom}`));
-          msg.split('\n').forEach(l=>{ if(l.trim()) paras.push(pSimple(l.trim())); });
-          paras.push(pSimple('##fin'));
-          paras.push(x('w:p',{},x('w:pPr',{},'<w:spacing w:after="100"/>')));
-          return;
-        }
-        // Noeud texte nu
-        if(node.nodeType===3){
-          const txt=node.textContent.trim();
-          if(!txt) return;
-          paras.push(pTxt(txt, indentFirst));
-          return;
-        }
-        if(node.nodeName==='BR') return;
-        // <div> ou <p> avec seulement un <br> → paragraphe vide, ignorer
-        if((node.nodeName==='DIV'||node.nodeName==='P') && node.innerHTML.trim()==='<br>') return;
-        // <div> ou <p> → paragraphe séparé
-        if(node.nodeName==='DIV'||node.nodeName==='P'){
-          // Cas spécial : div avec un seul noeud texte géant
-          if(node.childNodes.length===1 && node.childNodes[0].nodeType===3){
-            const txt = node.childNodes[0].textContent;
-            // Si le texte contient des \n, c'est plusieurs paragraphes fusionnés
-            const lines = txt.split('\n').filter(l=>l.trim());
-            if(lines.length > 1){
-              lines.forEach(line=>{
-                const pPr='<w:ind w:firstLine="720"/><w:spacing w:after="200"/>';
-                paras.push(x('w:p',{},x('w:pPr',{},pPr)+
-                  x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="24"/>')+
-                  x('w:t',{'xml:space':'preserve'},esc2(line.trim())))));
-              });
-              return;
-            }
+      if(node.nodeName==='BR') return;
+      // <div> ou <p> avec seulement un <br> → paragraphe vide, ignorer
+      if((node.nodeName==='DIV'||node.nodeName==='P') && node.innerHTML.trim()==='<br>') return;
+      // <div> ou <p> → paragraphe séparé
+      if(node.nodeName==='DIV'||node.nodeName==='P'){
+        // Cas spécial : div avec un seul noeud texte géant
+        if(node.childNodes.length===1 && node.childNodes[0].nodeType===3){
+          const txt = node.childNodes[0].textContent;
+          // Si le texte contient des \n, c'est plusieurs paragraphes fusionnés
+          const lines = txt.split('\n').filter(l=>l.trim());
+          if(lines.length > 1){
+            lines.forEach(line=>{
+              const pPr='<w:ind w:firstLine="720"/><w:spacing w:after="200"/>';
+              paras.push(x('w:p',{},x('w:pPr',{},pPr)+
+                x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>')+
+                x('w:t',{'xml:space':'preserve'},esc2(line.trim())))));
+            });
+            return;
           }
-          const runs=nodeToRuns(node);
-          if(!runs.trim()) return;
-          const pPr='<w:ind w:firstLine="720"/><w:spacing w:after="200"/>';
-          paras.push(x('w:p',{},x('w:pPr',{},pPr)+runs));
-          return;
         }
-        // Autre élément (span, b, etc.)
         const runs=nodeToRuns(node);
         if(!runs.trim()) return;
-        const pPr=indentFirst?'<w:ind w:firstLine="720"/><w:spacing w:after="200"/>':'<w:spacing w:after="200"/>';
+        const pPr='<w:ind w:firstLine="720"/><w:spacing w:after="200"/>';
         paras.push(x('w:p',{},x('w:pPr',{},pPr)+runs));
-      });
-      return paras.length?paras:[x('w:p',{},x('w:pPr',{},'<w:spacing w:after="200"/>'))];
-    }
-
-    // ── Bâtir le document.xml ──
-    let body='';
-
-    // Page de titre
-    const titreRun=x('w:r',{},
-      x('w:rPr',{},'<w:b/><w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="56"/>') +
-      x('w:t',{},esc2(P.titre||''))
-    );
-    body+=x('w:p',{},x('w:pPr',{},'<w:jc w:val="center"/><w:spacing w:after="240" w:before="2400"/>') + titreRun);
-
-    if(P.sousTitre){
-      body+=x('w:p',{},
-        x('w:pPr',{},'<w:jc w:val="center"/><w:spacing w:after="960"/>') +
-        x('w:r',{},x('w:rPr',{},'<w:i/><w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="28"/><w:color w:val="6b5a4e"/>') + x('w:t',{},esc2(P.sousTitre)))
-      );
-    } else {
-      body+=x('w:p',{},x('w:pPr',{},'<w:spacing w:after="960"/>'));
-    }
-    if(P.auteur){
-      body+=x('w:p',{},
-        x('w:pPr',{},'<w:jc w:val="center"/><w:spacing w:after="120"/>') +
-        x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="24"/>') + x('w:t',{},esc2(P.auteur)))
-      );
-    }
-    const meta=[P.genre,P.annee].filter(Boolean).join(' · ');
-    if(meta){
-      body+=x('w:p',{},
-        x('w:pPr',{},'<w:jc w:val="center"/>') +
-        x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/><w:sz w:val="18"/><w:color w:val="9c8878"/>') + x('w:t',{},esc2(meta)))
-      );
-    }
-
-    // Chapitres
-    P.chapitres.forEach((ch,ci)=>{
-      const niv = ch.niveau || 2;
-      const headingStyle = niv === 1 ? 'Heading1' : 'Heading2';
-      body+=x('w:p',{},
-        x('w:pPr',{},
-          `<w:pStyle w:val="${headingStyle}"/>` +
-          '<w:pageBreakBefore/>' +
-          '<w:spacing w:before="0" w:after="480"/>'
-        ) +
-        x('w:r',{},x('w:t',{},esc2(ch.titre)))
-      );
-      // Contenu (Titre 1 = section sans contenu propre)
-      if(ch.contenu){
-        const paras=htmlToParagraphs(ch.contenu, true);
-        body+=paras.join('');
+        return;
       }
+      // Autre élément (span, b, etc.)
+      const runs=nodeToRuns(node);
+      if(!runs.trim()) return;
+      const pPr=indentFirst?'<w:ind w:firstLine="720"/><w:spacing w:after="200"/>':'<w:spacing w:after="200"/>';
+      paras.push(x('w:p',{},x('w:pPr',{},pPr)+runs));
     });
+    return paras.length?paras:[x('w:p',{},x('w:pPr',{},'<w:spacing w:after="200"/>'))];
+  }
 
-    const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  // ── Bâtir le document.xml ──
+  let body='';
+
+  // Page de titre
+  const titreRun=x('w:r',{},
+    x('w:rPr',{},'<w:b/><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="56"/>') +
+    x('w:t',{},esc2(P.titre||''))
+  );
+  body+=x('w:p',{},x('w:pPr',{},'<w:jc w:val="center"/><w:spacing w:after="240" w:before="2400"/>') + titreRun);
+
+  if(P.sousTitre){
+    body+=x('w:p',{},
+      x('w:pPr',{},'<w:jc w:val="center"/><w:spacing w:after="960"/>') +
+      x('w:r',{},x('w:rPr',{},'<w:i/><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="28"/><w:color w:val="6b5a4e"/>') + x('w:t',{},esc2(P.sousTitre)))
+    );
+  } else {
+    body+=x('w:p',{},x('w:pPr',{},'<w:spacing w:after="960"/>'));
+  }
+  if(P.auteur){
+    body+=x('w:p',{},
+      x('w:pPr',{},'<w:jc w:val="center"/><w:spacing w:after="120"/>') +
+      x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>') + x('w:t',{},esc2(P.auteur)))
+    );
+  }
+  const meta=[P.genre,P.annee].filter(Boolean).join(' · ');
+  if(meta){
+    body+=x('w:p',{},
+      x('w:pPr',{},'<w:jc w:val="center"/>') +
+      x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="18"/><w:color w:val="9c8878"/>') + x('w:t',{},esc2(meta)))
+    );
+  }
+
+  // Chapitres
+  P.chapitres.forEach((ch,ci)=>{
+    const niv = ch.niveau || 2;
+    const headingStyle = niv === 1 ? 'Heading1' : 'Heading2';
+    body+=x('w:p',{},
+      x('w:pPr',{},
+        `<w:pStyle w:val="${headingStyle}"/>` +
+        '<w:pageBreakBefore/>' +
+        '<w:spacing w:before="0" w:after="480"/>'
+      ) +
+      x('w:r',{},x('w:t',{},esc2(ch.titre)))
+    );
+    // Contenu (Titre 1 = section sans contenu propre)
+    if(ch.contenu){
+      const paras=htmlToParagraphs(ch.contenu, true);
+      body+=paras.join('');
+    }
+  });
+
+  const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
   xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -2803,74 +2826,104 @@ ${body}
 </w:body>
 </w:document>`;
 
-    // ── Assembler le ZIP ──
-    const zip=new JSZip();
-    zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  // ── Assembler le ZIP ──
+  const zip=new JSZip();
+  zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`);
-    zip.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`);
-    zip.file('word/document.xml', docXml);
-    zip.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file('word/document.xml', docXml);
+  zip.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`);
-    zip.file('word/styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file('word/styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-          xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+        xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
   <w:style w:type="paragraph" w:styleId="Normal">
-    <w:name w:val="Normal"/>
-    <w:rPr>
-      <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/>
-      <w:sz w:val="24"/>
-    </w:rPr>
+  <w:name w:val="Normal"/>
+  <w:rPr>
+    <w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+    <w:sz w:val="24"/>
+  </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading1">
-    <w:name w:val="heading 1"/>
-    <w:basedOn w:val="Normal"/>
-    <w:next w:val="Normal"/>
-    <w:pPr>
-      <w:outlineLvl w:val="0"/>
-      <w:jc w:val="center"/>
-      <w:spacing w:before="2400" w:after="480"/>
-    </w:pPr>
-    <w:rPr>
-      <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/>
-      <w:b/>
-      <w:sz w:val="56"/>
-    </w:rPr>
+  <w:name w:val="heading 1"/>
+  <w:basedOn w:val="Normal"/>
+  <w:next w:val="Normal"/>
+  <w:pPr>
+    <w:outlineLvl w:val="0"/>
+    <w:jc w:val="center"/>
+    <w:spacing w:before="2400" w:after="480"/>
+  </w:pPr>
+  <w:rPr>
+    <w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+    <w:b/>
+    <w:sz w:val="56"/>
+  </w:rPr>
   </w:style>
   <w:style w:type="paragraph" w:styleId="Heading2">
-    <w:name w:val="heading 2"/>
-    <w:basedOn w:val="Normal"/>
-    <w:next w:val="Normal"/>
-    <w:pPr>
-      <w:outlineLvl w:val="1"/>
-      <w:pageBreakBefore/>
-      <w:spacing w:before="0" w:after="480"/>
-    </w:pPr>
-    <w:rPr>
-      <w:rFonts w:ascii="Garamond" w:hAnsi="Garamond"/>
-      <w:b/>
-      <w:sz w:val="32"/>
-      <w:color w:val="3C2810"/>
-    </w:rPr>
+  <w:name w:val="heading 2"/>
+  <w:basedOn w:val="Normal"/>
+  <w:next w:val="Normal"/>
+  <w:pPr>
+    <w:outlineLvl w:val="1"/>
+    <w:pageBreakBefore/>
+    <w:spacing w:before="0" w:after="480"/>
+  </w:pPr>
+  <w:rPr>
+    <w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/>
+    <w:b/>
+    <w:sz w:val="32"/>
+    <w:color w:val="3C2810"/>
+  </w:rPr>
   </w:style>
 </w:styles>`);
 
-    const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  return blob;
+}
+
+async function exportDocx(){
+  save(); // S'assurer que le chapitre actuel est sauvegardé avant export
+  save();
+  const btn=document.getElementById('btn-docx');
+  btn.textContent='→ Génération…'; btn.disabled=true;
+  try{
+    const blob=await construireDocxBlob();
     dl(blob,(P.titre||'roman').replace(/\s+/g,'_')+'.docx');
     flash('Export .docx terminé ✓');
   } catch(err){
     alert('Erreur export : '+err.message);
   } finally {
     btn.textContent='→ .docx'; btn.disabled=false;
+  }
+}
+
+// ── Export vers l'Enlumineur (ex-Thermidor) — génère le .docx et ouvre l'outil ──
+const ENLUMINEUR_URL='https://thermidor-production.up.railway.app';
+async function exporterVersEnlumineur(){
+  save();
+  save();
+  const btn=document.getElementById('btn-enlumineur');
+  const txtOrig=btn?btn.textContent:'';
+  if(btn){ btn.textContent='→ Génération…'; btn.disabled=true; }
+  try{
+    const blob=await construireDocxBlob();
+    dl(blob,(P.titre||'roman').replace(/\s+/g,'_')+'.docx');
+    window.open(ENLUMINEUR_URL,'_blank');
+    flash("Fichier .docx téléchargé — dépose-le dans l'Enlumineur ✓");
+  } catch(err){
+    alert('Erreur export : '+err.message);
+  } finally {
+    if(btn){ btn.textContent=txtOrig||'→ Enlumineur'; btn.disabled=false; }
   }
 }
 

@@ -751,10 +751,10 @@ function edChange(){
 function normaliserTypoTexte(s){
   return s
     .replace(/'/g, '’')
-    .replace(/\.{3,}/g, '…')
-    .replace(/[  ]([;:!?])/g, ' $1')
-    .replace(/[  ]»/g, ' »')
-    .replace(/« [  ]?/g, '« ');
+    .replace(/\.(\s?\.){2,}/g, '…')
+    .replace(/[ \xa0]([;:!?])/g, ' $1')
+    .replace(/[ \xa0]»/g, ' »')
+    .replace(/« [ \xa0]?/g, '« ');
 }
 function normaliserTypoNode(root){
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);

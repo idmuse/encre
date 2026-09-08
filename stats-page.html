@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistiques — L'Encrier</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate icon" href="favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/dark.css">
+<style>
+body{overflow:auto !important;height:auto !important;max-height:none !important;display:block !important;}
+.page{max-width:800px;margin:0 auto;padding:36px 20px 60px;}
+.titre-page{font-family:'IM Fell English',serif;font-size:28px;margin-bottom:24px;}
+
+/* Cartes résumé */
+.resume{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;}
+.resume-card{background:var(--paper2,#ede8de);border-radius:10px;padding:16px 20px;flex:1;min-width:120px;text-align:center;}
+.resume-val{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:600;color:var(--accent,#8b6914);}
+.resume-label{font-size:12px;color:var(--ink3,#7a6e5a);margin-top:4px;font-style:italic;}
+
+/* Graphique barres du mois */
+.section-titre{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink4,#a09080);letter-spacing:.12em;text-transform:uppercase;margin:28px 0 12px;}
+.graph-jour{display:flex;align-items:flex-end;gap:3px;height:120px;margin-bottom:6px;}
+.graph-jour .bar{flex:1;border-radius:2px 2px 0 0;min-height:1px;position:relative;cursor:default;}
+.graph-jour .bar.actif{background:var(--gold,#c4922a);}
+.graph-jour .bar.today{background:var(--accent,#8b6914);}
+.graph-jour .bar.vide{background:var(--paper3,#d8d0c0);min-height:2px;}
+.graph-jour .bar:hover::after{content:attr(data-tip);position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);white-space:nowrap;background:var(--paper2);padding:1px 5px;border-radius:3px;}
+.graph-labels{display:flex;gap:3px;}
+.graph-labels span{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink4);}
+
+/* Année */
+.annee-nav{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+.annee-nav button{background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink3);padding:4px 8px;}
+.annee-nav button:hover{color:var(--ink1);}
+.annee-label{font-family:'IM Fell English',serif;font-size:22px;min-width:70px;text-align:center;}
+
+/* Graphique mensuel */
+.graph-mois{display:flex;align-items:flex-end;gap:6px;height:160px;margin-bottom:8px;padding:0 4px;}
+.graph-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;cursor:default;}
+.graph-fill{width:100%;border-radius:4px 4px 0 0;transition:height .3s ease;min-height:2px;position:relative;}
+.graph-fill.actif{background:var(--gold,#c4922a);}
+.graph-fill.inactif{background:var(--paper3,#d8d0c0);}
+.graph-fill.estime{background:var(--paper3,#d8d0c0);opacity:.6;border:1px dashed var(--ink4);border-bottom:none;}
+.graph-tip{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink3);white-space:nowrap;opacity:0;transition:opacity .15s;}
+.graph-bar:hover .graph-tip{opacity:1;}
+html.dark .graph-tip{background:var(--paper2);color:var(--ink1);padding:2px 6px;border-radius:3px;}
+html.dark .graph-bar:hover .graph-tip{opacity:1;}
+.graph-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink4);margin-top:6px;text-transform:uppercase;letter-spacing:.05em;}
+
+/* Grille mensuelle */
+.mois-grid{display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:32px;}
+.mois-card{background:var(--paper2,#ede8de);border-radius:8px;padding:14px;text-align:center;transition:background .15s;}
+.mois-card:hover{background:var(--paper3,#d8d0c0);}
+.mois-card.vide{opacity:.4;}
+.mois-card.estime{border:1px dashed var(--ink4);opacity:.6;}
+.mois-nom{font-size:13px;color:var(--ink3);margin-bottom:4px;}
+.mois-mots{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;color:var(--ink1);}
+.mois-jours{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink4);margin-top:2px;}
+.mois-tag{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink4);margin-top:4px;text-transform:uppercase;letter-spacing:.1em;}
+
+.loader{text-align:center;padding:40px;color:var(--ink4);font-style:italic;font-size:16px;}
+
+@media(max-width:600px){
+  .mois-grid{grid-template-columns:repeat(3,1fr);}
+  .resume-card{min-width:0;padding:12px 8px;}
+  .resume-val{font-size:18px;}
+  .graph-mois{height:120px;}
+}
+@media(max-width:400px){
+  .mois-grid{grid-template-columns:repeat(2,1fr);}
+  .page{padding:16px 10px 40px;}
+}
+</style>
+</head>
+<body>
+
+<div id="db-topbar">
+  <a href="index.html" class="logo" style="text-decoration:none"><em>l'encrier</em></a>
+  <div class="tb-sep" style="background:#3a3028;margin:0 8px"></div>
+  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;letter-spacing:.08em;text-transform:uppercase">STATS</span>
+  <div id="db-topbar-right">
+    <a href="index.html" class="tb-btn" style="text-decoration:none;text-transform:uppercase;letter-spacing:.06em;font-family:'JetBrains Mono',monospace;font-size:11px;display:inline-flex;align-items:center">PROJETS</a>
+    <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="font-size:14px;padding:2px 8px;">🌙</button>
+    <a href="guide.html" target="_blank" title="Guide" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#9c8878;text-decoration:none;padding:2px 7px;border:1px solid #4a3f35;border-radius:50%;line-height:1;">?</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="titre-page">Statistiques</div>
+
+  <!-- Résumé du jour / mois -->
+  <div id="resume" class="resume"></div>
+
+  <!-- Graphique du mois en cours -->
+  <div class="section-titre" id="titre-mois-courant"></div>
+  <div id="graph-jour" class="graph-jour"></div>
+  <div id="graph-jour-labels" class="graph-labels"></div>
+
+  <!-- Stats annuelles -->
+  <div class="section-titre">BILAN ANNUEL</div>
+  <div class="annee-nav">
+    <button onclick="changerAnnee(-1)">←</button>
+    <div class="annee-label" id="annee-label">2026</div>
+    <button onclick="changerAnnee(1)">→</button>
+  </div>
+
+  <div id="graph-mois" class="graph-mois"></div>
+  <div id="mois-grid" class="mois-grid"></div>
+
+  <div class="loader" id="loader">Chargement…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/theme.js"></script>
+<script>
+const SUPABASE_URL='https://derxiavgbnkntopuavdz.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlcnhpYXZnYm5rbnRvcHVhdmR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjEwMzQsImV4cCI6MjA4OTczNzAzNH0.H5c6AO0Cs-fMKxYoO4Gm3IUUgSQ6OpdasKwOyfv7SHY';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const MOIS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MOIS_COURT=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+
+let annee = new Date().getFullYear();
+let sbUser = null;
+let statsManuelles = {};
+let toutesLesStats = []; // cache des données stats_ecriture
+
+function fmt(n){ return n.toLocaleString('fr-FR'); }
+function aujourdhui(){ return new Date().toISOString().split('T')[0]; }
+
+function changerAnnee(delta){
+  annee += delta;
+  document.getElementById('annee-label').textContent = annee;
+  renderAnnee();
+}
+
+// Fusionner stats manuelles (même logique que profil.html)
+function fusionnerStatsJours(rows){
+  const statsJours = {};
+  (rows||[]).forEach(r => {
+    if(r.date && typeof r.mots === 'number')
+      statsJours[r.date] = (statsJours[r.date]||0) + r.mots;
+  });
+  Object.entries(statsManuelles).forEach(([k, v]) => {
+    if(typeof v !== 'number') return;
+    if(k.length === 10){
+      if(!statsJours[k]) statsJours[k] = v;
+    } else if(k.length === 7){
+      const aMoisDonnees = Object.keys(statsJours).some(d => d.startsWith(k));
+      if(!aMoisDonnees) statsJours[k + '-01'] = v;
+    }
+  });
+  return statsJours;
+}
+
+async function init(){
+  const { data } = await sb.auth.getSession();
+  if(!data?.session){
+    document.getElementById('loader').textContent = 'Connectez-vous pour voir vos statistiques.';
+    return;
+  }
+  sbUser = data.session.user;
+
+  const { data: profil } = await sb.from('profils')
+    .select('stats_manuelles').eq('user_id', sbUser.id).maybeSingle();
+  statsManuelles = profil?.stats_manuelles || {};
+
+  const { data: rows } = await sb.from('stats_ecriture')
+    .select('date, mots')
+    .eq('user_id', sbUser.id);
+  toutesLesStats = rows || [];
+
+  renderResume();
+  renderMoisCourant();
+  renderAnnee();
+  document.getElementById('loader').style.display = 'none';
+}
+
+function renderResume(){
+  const statsJours = fusionnerStatsJours(toutesLesStats);
+  const today = aujourdhui();
+  const anneeStr = new Date().getFullYear().toString();
+  const moisStr = today.slice(0,7);
+
+  const motsAuj = statsJours[today] || 0;
+  const motsMois = Object.entries(statsJours).filter(([k])=>k.startsWith(moisStr)).reduce((s,[,v])=>s+v, 0);
+  const motsAnnee = Object.entries(statsJours).filter(([k])=>k.startsWith(anneeStr)).reduce((s,[,v])=>s+v, 0);
+
+  // Streak
+  let streak = 0;
+  let d = new Date();
+  // Si pas encore écrit aujourd'hui, commencer d'hier
+  if(!statsJours[today] || statsJours[today] === 0) d.setDate(d.getDate() - 1);
+  while(true){
+    const ds = d.toISOString().split('T')[0];
+    if(statsJours[ds] && statsJours[ds] > 0){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+
+  document.getElementById('resume').innerHTML = `
+    <div class="resume-card"><div class="resume-val">${fmt(motsAuj)}</div><div class="resume-label">mots aujourd'hui</div></div>
+    <div class="resume-card"><div class="resume-val">${fmt(motsMois)}</div><div class="resume-label">mots ce mois</div></div>
+    <div class="resume-card"><div class="resume-val">${fmt(motsAnnee)}</div><div class="resume-label">mots en ${anneeStr}</div></div>
+    <div class="resume-card"><div class="resume-val">${streak}${streak>=7?' 🔥':''}</div><div class="resume-label">jours de suite</div></div>
+  `;
+}
+
+function renderMoisCourant(){
+  const today = aujourdhui();
+  const moisStr = today.slice(0,7);
+  const moisIdx = parseInt(today.slice(5,7)) - 1;
+  const anneeNum = parseInt(today.slice(0,4));
+  const nbJours = new Date(anneeNum, moisIdx+1, 0).getDate();
+  const jourAuj = parseInt(today.slice(8,10));
+
+  document.getElementById('titre-mois-courant').textContent = MOIS_FR[moisIdx].toUpperCase() + ' ' + anneeNum;
+
+  const statsJours = fusionnerStatsJours(toutesLesStats);
+  const jours = [];
+  let maxJ = 1;
+  for(let j=1; j<=nbJours; j++){
+    const ds = `${moisStr}-${String(j).padStart(2,'0')}`;
+    const m = statsJours[ds] || 0;
+    if(m > maxJ) maxJ = m;
+    jours.push({ jour: j, mots: m, isToday: j === jourAuj, isFutur: j > jourAuj });
+  }
+
+  document.getElementById('graph-jour').innerHTML = jours.map(j => {
+    if(j.isFutur) return `<div class="bar vide" style="height:2px"></div>`;
+    const pct = j.mots > 0 ? Math.max(3, Math.round(j.mots / maxJ * 100)) : 2;
+    const cls = j.isToday ? 'today' : j.mots > 0 ? 'actif' : 'vide';
+    return `<div class="bar ${cls}" style="height:${pct}%" data-tip="${fmt(j.mots)} mots"></div>`;
+  }).join('');
+
+  document.getElementById('graph-jour-labels').innerHTML = jours.map(j =>
+    `<span>${j.jour % 5 === 0 || j.jour === 1 ? j.jour : ''}</span>`
+  ).join('');
+}
+
+function renderAnnee(){
+  const statsJours = fusionnerStatsJours(toutesLesStats);
+  const parMois = Array(12).fill(0);
+  const joursParMois = Array(12).fill(0);
+
+  Object.entries(statsJours).forEach(([k, v]) => {
+    if(!k.startsWith(annee.toString())) return;
+    const m = parseInt(k.split('-')[1]) - 1;
+    if(m >= 0 && m < 12){
+      parMois[m] += v;
+      if(v > 0) joursParMois[m]++;
+    }
+  });
+
+  // Mois estimés (stats manuelles seulement, pas de stats_ecriture)
+  const moisEstime = Array(12).fill(false);
+  const moisAvecStats = new Set(toutesLesStats.filter(r => r.date && r.date.startsWith(annee.toString())).map(r => parseInt(r.date.split('-')[1]) - 1));
+  for(let i = 0; i < 12; i++){
+    if(!moisAvecStats.has(i) && parMois[i] > 0) moisEstime[i] = true;
+  }
+
+  // Graphique
+  const maxMois = Math.max(...parMois, 1);
+  document.getElementById('graph-mois').innerHTML = parMois.map((v, i) => {
+    const pct = Math.max(2, Math.round(v / maxMois * 100));
+    const cls = v === 0 ? 'inactif' : moisEstime[i] ? 'estime' : 'actif';
+    return `<div class="graph-bar">
+      <div class="graph-fill ${cls}" style="height:${v > 0 ? pct : 2}%">
+        <span class="graph-tip">${fmt(v)}</span>
+      </div>
+      <div class="graph-label">${MOIS_COURT[i]}</div>
+    </div>`;
+  }).join('');
+
+  // Grille
+  const maintenant = new Date();
+  document.getElementById('mois-grid').innerHTML = parMois.map((v, i) => {
+    const estFutur = annee > maintenant.getFullYear() || (annee === maintenant.getFullYear() && i > maintenant.getMonth());
+    if(estFutur) return `<div class="mois-card vide"><div class="mois-nom">${MOIS_FR[i]}</div><div class="mois-mots" style="color:var(--ink4)">—</div></div>`;
+    const cls = v === 0 ? 'vide' : moisEstime[i] ? 'estime' : '';
+    return `<div class="mois-card ${cls}">
+      <div class="mois-nom">${MOIS_FR[i]}</div>
+      <div class="mois-mots">${v > 0 ? fmt(v) : '0'}</div>
+      ${joursParMois[i] > 0 ? `<div class="mois-jours">${joursParMois[i]} jour${joursParMois[i]>1?'s':''}</div>` : ''}
+      ${moisEstime[i] ? '<div class="mois-tag">estimé</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>

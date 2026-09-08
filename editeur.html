@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<title>L'Encrier — Éditeur</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&family=IM+Fell+English:ital@0;1&family=Playfair+Display:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/dark.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="alternate icon" href="favicon.ico">
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo" onclick="ouvrirDashboard()" style="cursor:pointer" title="Retour aux projets"><em>l'encrier</em></div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="nouveauProjet()">Nouveau</button>
+  <button class="tb-btn" onclick="sauvegarderCloud()">Sauvegarder ☁</button>
+  <button class="tb-btn" onclick="sauvegarderLocal()">↓ Local</button>
+  <button class="tb-btn" onclick="ouvrirRestoreBackup()" title="Restaurer un backup depuis le serveur">↩ Backup</button>
+  <button class="tb-btn" onclick="importerDocx()">← .docx</button>
+  <button class="tb-btn" id="btn-docx" onclick="exportDocx()">→ .docx</button>
+  <button class="tb-btn" id="btn-pdf" onclick="exportPdf()" title="Export PDF KDP 6×9">→ PDF</button>
+  <button class="tb-btn" onclick="partagerLecture()" title="Lien de lecture pour bêtas">🔗 Partager</button>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:0">
+    <div class="tb-sep"></div>
+    <button class="tb-btn tb-nav" id="nav-projets" onclick="ouvrirDashboard()" style="text-transform:uppercase;letter-spacing:.06em">Projets</button>
+    <button class="tb-btn tb-nav" id="nav-plan" onclick="togglePlan()" style="text-transform:uppercase;letter-spacing:.06em">Plan</button>
+    <button class="tb-btn tb-nav" id="nav-carnet" onclick="ouvrirCarnetPage()" style="text-transform:uppercase;letter-spacing:.06em">Carnet</button>
+  </div>
+  <a href="guide.html" target="_blank" title="Guide d'utilisation" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b5a4e;text-decoration:none;padding:2px 7px;border:1px solid #3a3028;border-radius:50%;line-height:1;cursor:pointer;margin-right:4px;transition:color .15s" onmouseover="this.style.color='#c4a882'" onmouseout="this.style.color='#6b5a4e'">?</a>
+  <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="font-size:14px;padding:2px 8px;">🌙</button>
+  <span id="save-status" title="Statut sauvegarde" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;cursor:default">☁ ●</span>
+  <span id="lt-badge" title="LanguageTool" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;cursor:default">LT ●</span>
+  <input id="projet-nom" value="Mon Roman" onchange="P.titre=this.value" style="display:none">
+  <input type="file" id="fi" accept=".encre" style="display:none" onchange="ouvrir(this)">
+  <input type="file" id="fi-docx" accept=".docx" style="display:none" onchange="lireDocx(this)">
+  <input type="file" id="pi" accept="image/*" style="display:none" onchange="photoLue(this)">
+</div>
+
+
+<!-- CARNET PAGE PLEINE -->
+<div id="carnet-page" style="position:fixed;inset:0;background:var(--paper);z-index:8000;display:none;flex-direction:column;">
+  <div style="display:flex;align-items:center;background:var(--ink);height:42px;padding:0 16px;flex-shrink:0;">
+    <div class="logo" onclick="fermerCarnetPage()" style="cursor:pointer"><em>l'encrier</em></div>
+    <div class="tb-sep" style="background:#3a3028;margin:0 8px"></div>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;letter-spacing:.08em;text-transform:uppercase">Carnet d'idées</span>
+    <button class="tb-btn" onclick="fermerCarnetPage()" style="margin-left:auto;color:#a09080">← Éditeur</button>
+  </div>
+  <div id="carnet-view" style="display:flex;flex:1;overflow:hidden;flex-direction:row;">
+    <div id="carnet-sidebar">
+      <div id="carnet-sidebar-head">
+        <span>Carnet</span>
+        <button class="icon-btn" onclick="carnetNouveau()" title="Nouvelle idée">＋</button>
+      </div>
+      <div id="carnet-list"></div>
+      <div style="padding:8px 14px;border-top:1px solid var(--paper3);display:flex;gap:6px;">
+        <button style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:5px;cursor:pointer;color:var(--ink3);" onclick="carnetSauvegarder()">Sauvegarder</button>
+        <button style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:5px;cursor:pointer;color:var(--ink3);" onclick="carnetCharger()">Ouvrir</button>
+      </div>
+    </div>
+      <div id="carnet-editor">
+        <div id="carnet-empty">
+          <p>Sélectionnez une idée ou créez-en une nouvelle</p>
+          <button class="fb fb-s" onclick="carnetNouveau()">+ Nouvelle idée</button>
+        </div>
+      </div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="sidebar">
+    <div id="sb-projet" onclick="ouvrirFicheProjet()" title="Modifier la fiche projet">
+      <div id="sbp-titre">Mon Roman</div>
+      <div id="sbp-auteur"></div>
+      <div id="sbp-meta"></div>
+    </div>
+    <div id="sb-head">
+      <span>Chapitres</span>
+      <button class="icon-btn" onclick="ajouterChap()" title="Nouveau chapitre">＋</button>
+    </div>
+    <div id="chap-list"></div>
+    <div id="sb-stats">
+      <span id="sb-total-label">Total</span>
+      <span id="sb-total-mots">0 mots</span>
+    </div>
+  </div>
+
+  <div id="ez">
+    <div id="etb">
+      <span id="chap-n">1.</span>
+      <input id="chap-ti" placeholder="Titre du chapitre…" oninput="titreChap(this.value)">
+      <span id="wc">0 mots</span>
+    </div>
+    <div id="fmt-bar">
+      <button class="fmt-btn" onclick="fmt('bold')" title="Gras (Ctrl+B)"><b>G</b></button>
+      <button class="fmt-btn" onclick="fmt('italic')" title="Italique (Ctrl+I)"><em>I</em></button>
+      <button class="fmt-btn" onclick="fmt('underline')" title="Souligné (Ctrl+U)"><u>S</u></button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" onclick="fmt('removeFormat')" title="Effacer">✕</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" onclick="alignerTexte('left')" title="Gauche">⬅</button>
+      <button class="fmt-btn" onclick="alignerTexte('center')" title="Centré">☰</button>
+      <button class="fmt-btn" onclick="alignerTexte('right')" title="Droite">➡</button>
+      <button class="fmt-btn" onclick="alignerTexte('justify')" title="Justifié" style="font-weight:600">≡</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" onclick="insererTexto('droite')" title="Bulle texto droite (envoyé)" style="font-size:12px">💬→</button>
+      <button class="fmt-btn" onclick="insererTexto('gauche')" title="Bulle texto gauche (reçu)" style="font-size:12px">←💬</button>
+      <div class="fmt-sep"></div>
+      <button class="fmt-btn" onclick="ouvrirModalCorrections()" title="Gérer mes corrections automatiques" style="font-size:10px">ABC</button>
+    </div>
+    <div id="es">
+      <div id="editor" contenteditable="true" spellcheck="true" lang="fr"
+        data-ph="Commencez à écrire… Tapez -- pour un tiret cadratin. Clic droit sur une sélection pour ajouter aux personnages, lieux ou timeline."
+        oninput="edChange()" onkeydown="edKey(event)" oncontextmenu="showCtx(event)">
+      </div>
+    </div>
+    <div id="plan-view">
+      <div id="plan-tabs">
+        <button class="plan-tab on" onclick="planTab('fiches',this)">Fiches</button>
+        <button class="plan-tab" onclick="planTab('notes',this)">Notes libres</button>
+        <button class="plan-tab" onclick="planTab('struct',this)">Structure</button>
+        <button class="plan-tab" onclick="planTab('etapes',this)">Étapes</button>
+      </div>
+      <div id="plan-body">
+        <div id="plan-grid"></div>
+        <div id="plan-notes" style="display:none"><div id="plan-notes-ed" contenteditable="true" oninput="P.planNotes=this.innerHTML"></div></div>
+        <div id="plan-struct" style="display:none"></div>
+        <div id="plan-etapes" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div id="panel-close-btn">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);">Infos du projet</span>
+      <button onclick="mnavPanel()" style="background:none;border:none;font-size:22px;color:var(--ink3);cursor:pointer;line-height:1;padding:0;">×</button>
+    </div>
+    <!-- Recherche dans tous les chapitres -->
+    <div style="padding:8px 12px;border-bottom:1px solid var(--paper3,#e8e0d4);">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <input id="search-input" type="text" placeholder="Rechercher dans le roman…"
+          oninput="rechercherDansChapitres(this.value)"
+          style="flex:1;font-family:'Crimson Pro',serif;font-size:13px;padding:5px 10px;border:1px solid var(--paper3,#e8e0d4);border-radius:4px;background:var(--paper,#faf7f2);color:var(--ink,#1a1410);">
+        <button onclick="document.getElementById('search-input').value='';document.getElementById('search-results').innerHTML=''"
+          style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--ink4,#9c8878);padding:2px;">✕</button>
+      </div>
+      <div id="search-results" style="max-height:250px;overflow-y:auto;margin-top:6px;"></div>
+    </div>
+    <div class="acc-head" onclick="accToggle('infos')">
+      <span>Infos de base</span><span class="acc-arrow" id="arr-infos">▸</span>
+    </div>
+    <div class="acc-body" id="acc-infos" style="display:none"></div>
+    <div class="acc-head" onclick="accToggle('perso')">
+      <span>Personnages</span><span class="acc-arrow" id="arr-perso">▾</span>
+    </div>
+    <div class="acc-body" id="acc-perso" style="max-height:300px;overflow-y:auto;"></div>
+    <div class="acc-head" onclick="accToggle('lieux')">
+      <span>Lieux</span><span class="acc-arrow" id="arr-lieux">▸</span>
+    </div>
+    <div class="acc-body" id="acc-lieux" style="display:none;max-height:300px;overflow-y:auto;"></div>
+    <div class="acc-head" onclick="accToggle('time')">
+      <span>Timeline</span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <button class="icon-btn" title="Ouvrir la timeline complète" onclick="event.stopPropagation();ouvrirModalTimeline()" style="font-size:13px;padding:1px 5px;">⊞</button>
+        <span class="acc-arrow" id="arr-time">▸</span>
+      </span>
+    </div>
+    <div class="acc-body" id="acc-time" style="display:none;max-height:300px;overflow-y:auto;"></div>
+    <div class="acc-head" onclick="accToggle('liens')">
+      <span>Liens</span><span class="acc-arrow" id="arr-liens">▸</span>
+    </div>
+    <div class="acc-body" id="acc-liens" style="display:none;max-height:300px;overflow-y:auto;"></div>
+    <div class="acc-head" onclick="accToggle('notes')">
+      <span>Notes</span><span class="acc-arrow" id="arr-notes">▸</span>
+    </div>
+    <div class="acc-body" id="acc-notes" style="display:none;max-height:300px;overflow-y:auto;"></div>
+    <div class="acc-head" onclick="ltTogglePanel()">
+      <span>Corriger</span><span class="acc-arrow" id="arr-lt">▸</span>
+    </div>
+    <div class="acc-body" id="acc-lt" style="display:none;flex-direction:column;padding:0;">
+      <div id="lt-panel-list" style="padding:4px 0;"></div>
+    </div>
+    <div id="pf"></div>
+  </div>
+</div>
+
+<div id="sb">
+  <span id="s-titre">Mon Roman</span>
+  <span id="s-chap">Chapitre I</span>
+  <span id="s-total">0 mots</span>
+  <span id="s-msg"></span>
+</div>
+
+<div id="ctx">
+  <div class="cxi" onclick="ctxDo('perso')">👤 &nbsp;Ajouter au personnage</div>
+  <div class="cxi" onclick="ctxDo('lieu')">📍 &nbsp;Ajouter au lieu</div>
+  <div class="cxs"></div>
+  <div class="cxi" onclick="ctxDo('tl')">📅 &nbsp;Ajouter à la timeline</div>
+  <div class="cxs"></div>
+  <div class="cxi" onclick="ctxDo('copy')">⎘ &nbsp;Copier</div>
+</div>
+
+<div id="mobile-nav">
+  <button class="mnav-btn active" id="mnav-write" onclick="mnavWrite()">
+    <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Écrire
+  </button>
+  <button class="mnav-btn" id="mnav-chaps" onclick="mnavChapitres()">
+    <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    Chapitres
+  </button>
+  <button class="mnav-btn" id="mnav-panel" onclick="mnavPanel()">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Infos
+  </button>
+  <button class="mnav-btn" onclick="sauvegarderCloud()">
+    <svg viewBox="0 0 24 24"><path d="M19 9.5A6.5 6.5 0 0012.5 3a6.5 6.5 0 00-6.5 6.5H5a4 4 0 000 8h14a4 4 0 000-8h-0z"/><path d="M12 13v6M9 16l3 3 3-3"/></svg>
+    Sauver
+  </button>
+  <button class="mnav-btn" id="mnav-projets" onclick="ouvrirDashboard()">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Projets
+  </button>
+</div>
+<div id="ch">— inséré</div>
+<div id="mobile-toast"></div>
+
+<div id="modal-bg" onclick="if(event.target===this)fermerModal()">
+  <div id="modal">
+    <h3>Fiche du projet</h3>
+    <label class="fl">Titre</label>
+    <input class="fi" id="m-titre" oninput="P.titre=this.value;document.getElementById('projet-nom').value=this.value;updateSbProjet()">
+    <label class="fl">Sous-titre</label>
+    <input class="fi" id="m-sous" oninput="P.sousTitre=this.value;updateSbProjet()">
+    <label class="fl">Auteur·e</label>
+    <input class="fi" id="m-auteur" oninput="P.auteur=this.value;updateSbProjet()">
+    <div class="modal-row">
+      <div class="fi-wrap"><label class="fl">Genre</label><input class="fi" id="m-genre" oninput="P.genre=this.value;updateSbProjet()"></div>
+      <div class="fi-wrap"><label class="fl">Année</label><input class="fi" id="m-annee" oninput="P.annee=this.value;updateSbProjet()"></div>
+    </div>
+    <label class="fl">Synopsis</label>
+    <textarea class="fi fta" id="m-syn" style="min-height:80px" oninput="P.synopsis=this.value"></textarea>
+    <div class="fbr"><button class="fb fb-s" onclick="fermerModal()">Fermer</button></div>
+  </div>
+</div>
+
+<!-- ── Modal Timeline ─────────────────────────────────────── -->
+<div id="tl-modal-bg" onclick="if(event.target===this)fermerModalTimeline()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:3000;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto;backdrop-filter:blur(8px)">
+  <div id="tl-modal" style="background:#fff;border-radius:10px;width:min(780px,96vw);box-shadow:0 20px 60px rgba(0,0,0,.35);padding:28px 30px 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="font-family:'Playfair Display',serif;font-size:20px;margin:0;color:var(--ink1);">Timeline</h3>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="fb fb-s" onclick="ouvrirFormTlModal(null)" style="font-size:13px;padding:5px 12px;">＋ Événement</button>
+        <button onclick="fermerModalTimeline()" style="background:none;border:none;font-size:20px;color:var(--ink3);cursor:pointer;line-height:1;">×</button>
+      </div>
+    </div>
+    <div id="tl-modal-list"></div>
+    <!-- Formulaire inline dans la modal -->
+    <div id="tl-modal-form" style="display:none;background:#f5f2ed;border-radius:8px;padding:16px 18px;margin-top:12px;border:1px solid #e0d8cc;">
+      <h4 id="tl-form-titre" style="font-family:'Crimson Pro',serif;font-size:16px;margin:0 0 12px;color:var(--ink1);"></h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div><label class="fl">Titre</label><input class="fi" id="tlf-titre"></div>
+        <div><label class="fl">Date / Moment</label><input class="fi" id="tlf-date" placeholder="Jour 3, Été 1842…"></div>
+      </div>
+      <label class="fl">Personnages</label><input class="fi" id="tlf-persos" style="margin-bottom:10px">
+      <label class="fl">Notes</label><textarea class="fi fta" id="tlf-notes" style="min-height:70px;margin-bottom:12px"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <button id="tlf-del" onclick="supprimerEvTl()" style="background:none;border:none;font-size:12px;color:var(--accent);cursor:pointer;font-family:'Crimson Pro',serif;display:none;">Supprimer</button>
+        <div class="fbr" style="margin:0;">
+          <button class="fb fb-s" onclick="sauverEvTl()">Sauvegarder</button>
+          <button class="fb fb-c" onclick="document.getElementById('tl-modal-form').style.display='none'">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="modal-profil-bg" onclick="if(event.target===this)fermerModalProfil()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:var(--paper1);border-radius:12px;padding:28px 32px;width:min(520px,92vw);max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.3);">
+    <h3 style="font-family:'Crimson Pro',serif;font-size:22px;margin:0 0 18px;color:var(--ink1);">Profil auteur·e</h3>
+
+    <label class="fl">Pseudonyme / Nom public</label>
+    <input class="fi" id="p-pseudo" placeholder="ex: Marie Beausoleil" style="margin-bottom:12px">
+
+    <label class="fl">URL de votre profil public <span style="font-size:11px;color:var(--ink3)">(lettres, chiffres, tirets)</span></label>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+      <span style="font-size:12px;color:var(--ink3);font-family:monospace;white-space:nowrap">…/profil.html?a=</span>
+      <input class="fi" id="p-slug" placeholder="ex: suzanne-roy" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')" style="flex:1">
+    </div>
+    <div id="p-slug-status" style="font-size:11px;margin-bottom:12px;min-height:16px;color:var(--ink3)"></div>
+
+    <label class="fl">Bio courte</label>
+    <textarea class="fi fta" id="p-bio" placeholder="Quelques lignes sur vous…" style="min-height:80px;margin-bottom:12px"></textarea>
+
+    <label class="fl">Genre(s) littéraire(s)</label>
+    <input class="fi" id="p-genres" placeholder="ex: Roman noir, Science-fiction, Poésie" style="margin-bottom:12px">
+
+    <label class="fl">Site web</label>
+    <input class="fi" id="p-site" placeholder="https://…" style="margin-bottom:12px">
+
+    <label class="fl">Réseaux sociaux (un par ligne)</label>
+    <textarea class="fi fta" id="p-reseaux" placeholder="https://instagram.com/…&#10;https://twitter.com/…" style="min-height:60px;margin-bottom:12px"></textarea>
+
+    <label class="fl">Photo / Avatar (URL d'une image)</label>
+    <input class="fi" id="p-avatar" placeholder="https://…/photo.jpg" style="margin-bottom:4px">
+    <div id="p-avatar-preview" style="margin-bottom:16px"></div>
+
+    <div style="background:var(--paper2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--ink3);font-family:'Crimson Pro',serif;">
+      🔗 Votre profil public :<br>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <a id="p-lien-public" href="#" target="_blank" style="font-family:monospace;font-size:12px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none" title="Ouvrir le profil"></a>
+        <button onclick="copierLienProfil()" title="Copier le lien" style="background:none;border:1px solid var(--paper3);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px;color:var(--ink3);flex-shrink:0">📋 Copier</button>
+      </div>
+    </div>
+
+    <div class="fbr" style="gap:10px">
+      <button class="fb fb-s" onclick="sauvegarderProfil()">Sauvegarder</button>
+      <button class="fb" onclick="fermerModalProfil()" style="background:none;border:1px solid var(--paper3)">Fermer</button>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/app.js"></script>
+<script src="js/stats.js"></script>
+<!-- projet chargé depuis sessionStorage dans app.js -->
+<script src="js/theme.js"></script>
+</body>
+</html>

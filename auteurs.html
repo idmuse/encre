@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auteur·e·s — L'Encrier</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate icon" href="favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ink1:#1a1208;--ink3:#4a3820;--ink4:#8c7b6e;--paper:#f5f0e8;--paper2:#ede5d8;--or:#c4922a;--accent:#8b4513}
+body{font-family:'Crimson Pro',Georgia,serif;background:var(--paper);color:var(--ink1);min-height:100vh}
+header{background:var(--ink1);padding:16px 32px;display:flex;align-items:center;gap:16px}
+.logo{font-family:'IM Fell English',serif;font-style:italic;color:var(--or);font-size:22px;text-decoration:none}
+.header-sub{color:#8c7b6e;font-size:14px;font-style:italic}
+main{max-width:900px;margin:0 auto;padding:40px 24px}
+h1{font-family:'IM Fell English',serif;font-size:28px;font-weight:400;margin-bottom:8px}
+.sous-titre{color:var(--ink4);font-style:italic;font-size:15px;margin-bottom:32px}
+.grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px}
+.carte{background:#fff;border:1px solid var(--paper2);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit;transition:box-shadow 0.2s,transform 0.2s}
+.carte:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);transform:translateY(-2px)}
+.carte-haut{display:flex;align-items:center;gap:12px}
+.avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--paper2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.avatar img{width:48px;height:48px;border-radius:50%;object-fit:cover}
+.pseudo{font-size:17px;font-weight:600;color:var(--ink1)}
+.genres{font-size:12px;color:var(--or);font-style:italic}
+.bio{font-size:13px;color:var(--ink4);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.stats-mini{font-size:12px;color:var(--ink4);border-top:1px solid var(--paper2);padding-top:8px;margin-top:4px;display:flex;gap:12px}
+.etat{text-align:center;color:var(--ink4);font-style:italic;padding:60px 0}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="index.html">l'encrier</a>
+  <span class="header-sub">Atelier d'écriture</span>
+</header>
+<main>
+  <h1>Auteur·e·s</h1>
+  <p class="sous-titre">Les membres de l'Encrier qui partagent leur profil.</p>
+  <div class="grille" id="grille">
+    <div class="etat">Chargement…</div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://derxiavgbnkntopuavdz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlcnhpYXZnYm5rbnRvcHVhdmR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjEwMzQsImV4cCI6MjA4OTczNzAzNH0.H5c6AO0Cs-fMKxYoO4Gm3IUUgSQ6OpdasKwOyfv7SHY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function fmt(n){ return n ? n.toLocaleString('fr-FR') : '0'; }
+
+async function charger(){
+  const grille = document.getElementById('grille');
+
+  const { data, error } = await sb.from('profils')
+    .select('slug, pseudo, avatar, genres, bio, stats')
+    .neq('slug', null)
+    .neq('pseudo', null)
+    .order('pseudo');
+
+  if(error || !data || data.length === 0){
+    grille.innerHTML = '<div class="etat">Aucun profil public pour le moment.</div>';
+    return;
+  }
+
+  grille.innerHTML = data.map(p => {
+    const avatarEl = p.avatar
+      ? `<div class="avatar"><img src="${p.avatar}" alt=""></div>`
+      : `<div class="avatar">✍</div>`;
+
+    const totalMots = p.stats?.totalMots || 0;
+    const streak = p.stats?.streak || 0;
+
+    const statsEl = totalMots > 0
+      ? `<div class="stats-mini">
+          <span>📝 ${fmt(totalMots)} mots</span>
+          ${streak > 0 ? `<span>🔥 ${streak} jours</span>` : ''}
+        </div>`
+      : '';
+
+    return `<a class="carte" href="profil.html?a=${p.slug}">
+      <div class="carte-haut">
+        ${avatarEl}
+        <div>
+          <div class="pseudo">${p.pseudo}</div>
+          ${p.genres ? `<div class="genres">${p.genres}</div>` : ''}
+        </div>
+      </div>
+      ${p.bio ? `<div class="bio">${p.bio}</div>` : ''}
+      ${statsEl}
+    </a>`;
+  }).join('');
+}
+
+charger();
+</script>
+</body>
+</html>

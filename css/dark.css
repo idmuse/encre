@@ -1,0 +1,73 @@
+/* ── Mode nuit — encre ───────────────────────────────────
+   S'active quand <html> a la classe .dark
+   Toutes les couleurs passent par les variables CSS de main.css
+   ─────────────────────────────────────────────────────── */
+
+html.dark {
+  --ink:     #e8ddd0;
+  --ink2:    #c8bfb4;
+  --ink3:    #8a7e74;
+  --ink4:    #5a5048;
+  --paper:   #1c1814;
+  --paper2:  #231f1a;
+  --paper3:  #2e2820;
+  --accent:  #c4622d;
+  --accent2: #e07840;
+  --gold:    #c4922a;
+}
+
+/* Scrollbars */
+html.dark ::-webkit-scrollbar { background: var(--paper2); }
+html.dark ::-webkit-scrollbar-thumb { background: var(--paper3); border-radius: 4px; }
+
+/* Éditeur — fond légèrement différent du papier pour le confort */
+html.dark #editor { color: var(--ink); }
+
+/* Topbar reste sombre dans les deux modes */
+html.dark #topbar { background: #0e0c0a; }
+
+/* Modales et overlays */
+html.dark #modal-overlay { background: rgba(0,0,0,.6); }
+html.dark #modal { background: var(--paper2); }
+
+/* Inputs et textareas */
+html.dark input, html.dark textarea, html.dark select {
+  background: var(--paper2);
+  color: var(--ink);
+  border-color: var(--paper3);
+}
+html.dark input::placeholder, html.dark textarea::placeholder {
+  color: var(--ink4);
+}
+
+/* Boutons */
+html.dark .btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Canvas / export calendrier — pas affecté (fond blanc fixe) */
+
+/* Sidebar — compteur de mots plus lisible */
+html.dark .ci-w { color: var(--ink3); }
+html.dark .ci-n { color: var(--ink3); }
+html.dark .ci.on { background: var(--paper3); }
+
+/* Flash popup sauvegarde */
+html.dark .flash { color: #a8c4a0 !important; }
+html.dark #s-msg { color: var(--ink2); }
+
+/* Bar chart tooltip (index) */
+html.dark .bar-fill .bar-tip { background: #1a1612; color: #e8d9c0; }
+
+/* Save status */
+html.dark #save-status { color: var(--ink3); }
+
+/* Transition douce au changement de thème */
+*, *::before, *::after {
+  transition: background-color .2s ease, color .15s ease, border-color .2s ease;
+}
+/* Sauf les éléments animés qui ont déjà leurs transitions */
+.ci, .fmt-btn, .icon-btn, .acc-head, #sb-projet {
+  transition: background .15s, color .15s, border-color .15s;
+}

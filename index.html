@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<title>L'Encrier — Projets</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&family=IM+Fell+English:ital@0;1&family=Playfair+Display:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/dark.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="alternate icon" href="favicon.ico">
+</head>
+<body>
+
+<!-- Écran de réinitialisation de mot de passe -->
+<div id="reset-screen" style="display:none;position:fixed;inset:0;background:var(--paper);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="max-width:360px;width:100%;padding:40px;background:var(--paper2);border-radius:12px;border:1px solid var(--paper3);">
+    <div class="logo" style="text-align:center;margin-bottom:8px;"><em>l'encrier</em></div>
+    <div style="text-align:center;font-family:'Crimson Pro',serif;font-size:14px;color:var(--ink4);margin-bottom:24px;">Choisis un nouveau mot de passe</div>
+    <div id="reset-error" style="color:var(--accent);font-family:'Crimson Pro',serif;font-size:13px;text-align:center;margin-bottom:12px;min-height:18px;"></div>
+    <label class="ll">Nouveau mot de passe</label>
+    <input class="li" id="reset-pwd" type="password" placeholder="••••••••" autocomplete="new-password">
+    <button id="reset-btn" onclick="changerMotDePasse()" style="margin-top:12px;width:100%;">Enregistrer</button>
+  </div>
+</div>
+
+<div id="login-screen">
+  <div id="login-box">
+    <div class="logo"><em>l'encrier</em></div>
+    <div id="login-tagline">Atelier d'écriture</div>
+    <div id="login-error"></div>
+    <label class="ll">Courriel</label>
+    <input class="li" id="login-email" type="email" placeholder="vous@exemple.com" autocomplete="email">
+    <label class="ll">Mot de passe</label>
+    <input class="li" id="login-pwd" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button id="login-btn" onclick="seConnecter()">Se connecter</button>
+    <div style="text-align:center;margin-top:10px;">
+      <button onclick="motDePasseOublie()" style="background:none;border:none;cursor:pointer;font-family:'Crimson Pro',serif;font-size:13px;color:var(--ink4);text-decoration:underline;">Mot de passe oublié ?</button>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--ink4);line-height:1.6;">
+      Pas encore de compte ?<br>
+      <a href="https://thermidor-production.up.railway.app/login" target="_blank" style="color:var(--accent);text-decoration:none;font-style:italic;">Créer un compte sur iletaitunefois.net</a>
+      <div style="margin-top:8px;font-size:11px;color:var(--ink4);font-style:italic;">
+        Cliquez "Créer un compte" sur la page qui s'ouvre.<br>Le même compte donne accès à tous les outils du site.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJETS CLOUD MODAL -->
+
+<div id="modal-profil-bg" onclick="if(event.target===this)fermerModalProfil()" style="display:none;position:fixed;inset:0;background:#f5f0e8;z-index:99999;overflow-y:auto;padding:40px 20px;">
+  <div style="background:#fff;border-radius:12px;padding:28px 32px;width:min(520px,92vw);margin:0 auto;box-shadow:0 4px 20px rgba(0,0,0,.1);">
+    <h3 style="font-family:'Crimson Pro',serif;font-size:22px;margin:0 0 18px;color:var(--ink1);">Profil auteur·e</h3>
+
+    <label class="fl">Pseudonyme / Nom public</label>
+    <input class="fi" id="p-pseudo" placeholder="ex: Marie Beausoleil" style="margin-bottom:12px">
+
+    <label class="fl">URL de votre profil public <span style="font-size:11px;color:var(--ink3)">(lettres, chiffres, tirets)</span></label>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+      <span style="font-size:12px;color:var(--ink3);font-family:monospace;white-space:nowrap">…/profil.html?a=</span>
+      <input class="fi" id="p-slug" placeholder="ex: suzanne-roy" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')" style="flex:1">
+    </div>
+    <div id="p-slug-status" style="font-size:11px;margin-bottom:12px;min-height:16px;color:var(--ink3)"></div>
+
+    <label class="fl">Bio courte</label>
+    <textarea class="fi fta" id="p-bio" placeholder="Quelques lignes sur vous…" style="min-height:80px;margin-bottom:12px"></textarea>
+
+    <label class="fl">Genre(s) littéraire(s)</label>
+    <input class="fi" id="p-genres" placeholder="ex: Roman noir, Science-fiction, Poésie" style="margin-bottom:12px">
+
+    <label class="fl">Site web</label>
+    <input class="fi" id="p-site" placeholder="https://…" style="margin-bottom:12px">
+
+    <label class="fl">Réseaux sociaux (un par ligne)</label>
+    <textarea class="fi fta" id="p-reseaux" placeholder="https://instagram.com/…&#10;https://twitter.com/…" style="min-height:60px;margin-bottom:12px"></textarea>
+
+    <label class="fl">Photo / Avatar (URL d'une image)</label>
+    <input class="fi" id="p-avatar" placeholder="https://…/photo.jpg" style="margin-bottom:4px">
+    <div id="p-avatar-preview" style="margin-bottom:16px"></div>
+
+    <div style="background:var(--paper2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--ink3);font-family:'Crimson Pro',serif;">
+      🔗 Votre profil public :<br>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <a id="p-lien-public" href="#" target="_blank" style="font-family:monospace;font-size:12px;color:var(--accent);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none" title="Ouvrir le profil"></a>
+        <button onclick="copierLienProfilModal()" title="Copier le lien" style="background:none;border:1px solid var(--paper3);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:13px;color:var(--ink3);flex-shrink:0">📋 Copier</button>
+      </div>
+    </div>
+
+    <div class="fbr" style="gap:10px">
+      <button class="fb fb-s" onclick="sauvegarderProfil()">Sauvegarder</button>
+      <button class="fb" onclick="fermerModalProfil()" style="background:none;border:1px solid var(--paper3)">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div id="projets-modal" onclick="if(event.target===this)fermerProjets()">
+  <div id="projets-box">
+    <h3>Mes projets</h3>
+    <div id="projets-list"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="fb fb-c" onclick="fermerProjets()" style="flex:1">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div id="comm-dash-modal" onclick="if(event.target===this)fermerCommentairesDash()">
+  <div id="comm-dash-box">
+    <div id="comm-dash-head">
+      <h3 id="comm-dash-titre">Commentaires</h3>
+      <div id="comm-dash-tri" style="display:none;margin-left:auto;margin-right:8px;gap:4px;">
+        <button id="tri-position-btn" onclick="trierCommentairesDash('position')" class="comm-tri-btn active" title="Ordre du texte">📖 Texte</button>
+        <button id="tri-date-btn" onclick="trierCommentairesDash('date')" class="comm-tri-btn" title="Ordre chronologique">🕐 Date</button>
+      </div>
+      <button onclick="fermerCommentairesDash()" style="background:none;border:none;cursor:pointer;color:var(--ink4);font-size:18px;">✕</button>
+    </div>
+    <div id="comm-dash-list"></div>
+    <div id="comm-dash-footer" style="display:none;padding:12px 20px;border-top:1px solid var(--paper3);display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="exporterCommentaires()" style="background:none;border:1px solid var(--paper3);border-radius:6px;padding:7px 16px;font-family:'Crimson Pro',serif;font-size:14px;cursor:pointer;color:var(--ink3);">⬇ Exporter</button>
+      <button onclick="toutEffacerCommentaires()" style="background:none;border:1px solid var(--accent);border-radius:6px;padding:7px 16px;font-family:'Crimson Pro',serif;font-size:14px;cursor:pointer;color:var(--accent);">🗑 Tout effacer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TABLEAU DE BORD -->
+
+<div id="creation-modal" onclick="if(event.target===this)fermerCreation()" style="position:fixed;inset:0;background:rgba(26,20,16,.55);z-index:9000;display:none;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--paper);border-radius:8px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-sizing:border-box;">
+    <h3 style="font-family:'Playfair Display',serif;font-size:17px;margin-bottom:18px;font-weight:600;">Nouveau projet</h3>
+    <label class="ll">Titre *</label>
+    <input class="li" id="cr-titre" placeholder="Le titre de ton roman…">
+    <label class="ll">Auteur·e</label>
+    <input class="li" id="cr-auteur" placeholder="Ton nom…">
+    <label class="ll">Sous-titre</label>
+    <input class="li" id="cr-sous" placeholder="Sous-titre optionnel…">
+    <div style="display:flex;gap:10px">
+      <div style="flex:1"><label class="ll">Genre</label><input class="li" id="cr-genre" placeholder="Roman, Nouvelle…"></div>
+      <div style="flex:1"><label class="ll">Année</label><input class="li" id="cr-annee" placeholder="2025"></div>
+    </div>
+    <label class="ll">Synopsis</label>
+    <textarea class="li" id="cr-synopsis" style="resize:none;min-height:60px;line-height:1.5" placeholder="En quelques phrases…"></textarea>
+    <div style="height:1px;background:var(--paper3);margin:14px 0"></div>
+    <label class="ll">Statut</label>
+    <select class="li" id="cr-statut" style="font-family:'Crimson Pro',serif">
+      <option value="idee">Idée</option>
+      <option value="ecriture">Écriture</option>
+      <option value="beta">Bêta-lecture</option>
+      <option value="reecriture">Réécriture</option>
+      <option value="correction">Correction</option>
+      <option value="relecture">Relecture finale</option>
+      <option value="editeur">Envoi à l'éditeur</option>
+      <option value="termine_ecriture">✓ Terminé (écriture)</option>
+      <option value="termine_correction">✓ Terminé (correction)</option>
+      <option value="pause">En pause</option>
+    </select>
+    <div style="display:flex;gap:10px">
+      <div style="flex:1"><label class="ll">Date de début</label><input class="li" type="date" id="cr-debut"></div>
+      <div style="flex:1"><label class="ll">Date de remise ✉</label><input class="li" type="date" id="cr-fin"></div>
+    </div>
+    <label class="ll">Date de publication 📖</label>
+    <input class="li" type="date" id="cr-publication">
+    <label class="ll">Objectif de mots</label>
+    <input class="li" type="number" id="cr-objectif" placeholder="ex: 80000">
+    <div class="fbr" style="margin-top:12px">
+      <button class="fb fb-s" onclick="creerProjetDashboard()">Créer le projet</button>
+      <button class="fb fb-c" onclick="fermerCreation()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ÉCHÉANCE -->
+<div id="echeance-modal" onclick="if(event.target===this)fermerEcheance()">
+  <div id="echeance-box" style="max-height:85vh;overflow-y:auto;">
+    <h3 id="echeance-titre">Échéances</h3>
+    <label class="ll">Date de début</label>
+    <input class="li" type="date" id="ech-debut">
+    <label class="ll">Date de remise du manuscrit ✉</label>
+    <input class="li" type="date" id="ech-fin">
+    <label class="ll">Date de publication 📖</label>
+    <input class="li" type="date" id="ech-publication">
+    <label class="ll">Statut</label>
+    <select class="li" id="ech-statut" style="font-family:'Crimson Pro',serif">
+      <option value="idee">Idée</option>
+      <option value="ecriture">Écriture</option>
+      <option value="beta">Bêta-lecture</option>
+      <option value="reecriture">Réécriture</option>
+      <option value="correction">Correction</option>
+      <option value="relecture">Relecture finale</option>
+      <option value="editeur">Envoi à l'éditeur</option>
+      <option value="termine_ecriture">✓ Terminé (écriture)</option>
+      <option value="termine_correction">✓ Terminé (correction)</option>
+      <option value="pause">En pause</option>
+    </select>
+    <label class="ll">Objectif de mots</label>
+    <input class="li" type="number" id="ech-objectif" placeholder="ex: 80000">
+    <label class="ll">Couverture</label>
+    <div id="ech-couv-preview" style="margin-bottom:8px"></div>
+    <input type="file" id="ech-couv-input" accept="image/*" style="display:none" onchange="couvEcheanceLue(this)">
+    <button class="pb" onclick="document.getElementById('ech-couv-input').click()" style="margin-bottom:12px;width:100%;padding:6px">Choisir une image de couverture</button>
+    <label class="ll" style="margin-top:12px;border-top:1px solid var(--paper3,#e8e0d4);padding-top:12px;">Parcours</label>
+    <div id="ech-etapes" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;width:130px;font-family:'Crimson Pro',serif;">✏️ Début écriture</span>
+        <input class="li" type="date" id="ech-etape-debut" style="flex:1;margin:0;">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;width:130px;font-family:'Crimson Pro',serif;">📝 Fin premier jet</span>
+        <input class="li" type="date" id="ech-etape-jet" style="flex:1;margin:0;">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;width:130px;font-family:'Crimson Pro',serif;">🔍 Retravail</span>
+        <input class="li" type="date" id="ech-etape-retravail" style="flex:1;margin:0;">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;width:130px;font-family:'Crimson Pro',serif;">📖 Publication</span>
+        <input class="li" type="date" id="ech-etape-publication" style="flex:1;margin:0;">
+      </div>
+    </div>
+    <div class="fbr" style="margin-top:8px">
+      <button class="fb fb-s" onclick="sauverEcheance()">Sauvegarder</button>
+      <button class="fb fb-c" onclick="fermerEcheance()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+<div id="dashboard">
+  <div id="db-topbar">
+    <div class="logo"><em>l'encrier</em></div>
+    <div class="tb-sep" style="background:#3a3028;margin:0 8px"></div>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;letter-spacing:.08em;text-transform:uppercase">Projets</span>
+    <div id="db-topbar-right">
+      <span id="db-user"></span>
+      <button class="tb-btn" onclick="ouvrirModalMots()" style="color:#6ab87a" title="Ajouter des mots">＋ <span class="tb-btn-label">MOTS</span></button>
+      <a href="stats-page.html" class="tb-btn" style="color:#c4922a;text-decoration:none;display:inline-flex;align-items:center;gap:3px" title="Statistiques annuelles"><span class="tb-btn-label">STATS</span></a>
+      <button class="tb-btn" onclick="ouvrirModalProfil()" style="color:#c4a882" title="Mon profil">✍ <span class="tb-btn-label">Mon profil</span></button>
+      <button class="tb-btn tb-desktop-only" id="btn-lien-profil" onclick="copierLienProfil()" title="Copier le lien de mon profil public" style="color:#b8892a;display:none">🔗 <span class="tb-btn-label">Profil</span></button>
+      <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="font-size:14px;padding:2px 8px;margin-right:2px;">🌙</button><a href="guide.html" target="_blank" title="Guide d'utilisation" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#9c8878;text-decoration:none;padding:2px 7px;border:1px solid #4a3f35;border-radius:50%;line-height:1;cursor:pointer;margin-right:2px;transition:color .15s" onmouseover="this.style.color='#c4a882'" onmouseout="this.style.color='#9c8878'">?</a>
+      <button class="tb-btn" onclick="seDeconnecter()" title="Se déconnecter" style="font-size:15px;padding:2px 6px;opacity:.7">⏏</button>
+    </div>
+  </div>
+  <div id="db-body">
+    <div id="db-greeting" style="font-family:'Playfair Display',serif;font-size:26px;font-weight:400;color:var(--ink);margin-bottom:32px;line-height:1.4;"></div>
+
+    <h2>Mes projets</h2>
+    <div id="db-projets-grid"></div>
+
+    <div id="db-stats-section">
+      <h2>Stats d'écriture</h2>
+      <select id="stats-projet-select" onchange="renderStats()">
+        <option value="_all">Tous les projets</option>
+      </select>
+      <div class="stats-grid" id="stats-cards"></div>
+      <div id="stats-barchart"></div>
+      <div style="margin-top:12px;margin-bottom:24px;">
+        <button onclick="exporterCalendrier()" style="font-family:'Crimson Pro',serif;font-size:14px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:6px 14px;cursor:pointer;color:var(--ink3);">📅 Exporter ce mois</button>
+        <button onclick="exporterCalendrier(true)" style="font-family:'Crimson Pro',serif;font-size:14px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:6px 14px;cursor:pointer;color:var(--ink3);margin-left:8px;">📅 Exporter le mois précédent</button>
+      </div>
+      <div id="prog-bar-section"></div>
+      <div id="badges-section">
+        <h3>Badges</h3>
+        <h4>Session & Streak</h4>
+        <div class="badges-grid" id="badges-session"></div>
+        <h4>Ce mois-ci</h4>
+        <div class="badges-grid" id="badges-mois"></div>
+        <h4>Cette année</h4>
+        <div class="badges-grid" id="badges-annee"></div>
+      </div>
+    </div>
+
+    <div id="db-gantt-section" style="margin-top:48px">
+      <h2>Échéancier</h2>
+      <div id="db-gantt"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CRÉATION PROJET -->
+<div id="creation-modal" onclick="if(event.target===this)fermerCreation()" style="position:fixed;inset:0;background:rgba(26,20,16,.55);z-index:9000;display:none;align-items:center;justify-content:center;padding:16px;">
+
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/app.js"></script>
+
+
+<!-- ── Modal Collaboration ──────────────────────────────── -->
+<div id="collab-modal"
+     style="display:none;position:fixed;inset:0;background:#f5f0e8;z-index:9500;overflow-y:auto;padding:40px 20px;">
+  <div id="collab-box"
+       style="background:#fff;border-radius:12px;padding:28px;width:min(560px,92vw);margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.12);">
+  </div>
+</div>
+
+<!-- ── Modal saisie manuelle de mots ──────────────────── -->
+<div id="mots-modal"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9600;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:min(520px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-family:'Crimson Pro',serif;font-size:20px;color:#2c2416;margin:0">Ajouter des mots</h3>
+      <button onclick="fermerModalMots()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#a09080">✕</button>
+    </div>
+
+    <!-- Onglets -->
+    <div style="display:flex;gap:0;margin-bottom:20px;border:1px solid #d8d0c0;border-radius:8px;overflow:hidden">
+      <button id="tab-jour-btn" onclick="switchMotsTab('jour')"
+        style="flex:1;padding:8px;font-family:'Crimson Pro',serif;font-size:14px;border:none;cursor:pointer;background:#8b6914;color:#fff;">
+        Par jour
+      </button>
+      <button id="tab-mois-btn" onclick="switchMotsTab('mois')"
+        style="flex:1;padding:8px;font-family:'Crimson Pro',serif;font-size:14px;border:none;cursor:pointer;background:#f5f0e8;color:#7a6e5a;">
+        Total mensuel
+      </button>
+    </div>
+
+    <!-- Onglet : Grille jours du mois -->
+    <div id="tab-jour">
+      <!-- Navigation mois -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <button onclick="grilleNavMois(-1)" style="background:none;border:1px solid #d8d0c0;border-radius:6px;padding:4px 12px;font-size:18px;cursor:pointer;color:#8b6914">&#8592;</button>
+        <span id="grille-mois-label" style="font-family:'Crimson Pro',serif;font-size:16px;color:#2c2416;font-weight:600"></span>
+        <button onclick="grilleNavMois(1)" id="grille-nav-next" style="background:none;border:1px solid #d8d0c0;border-radius:6px;padding:4px 12px;font-size:18px;cursor:pointer;color:#8b6914">&#8594;</button>
+      </div>
+      <!-- Grille 3 colonnes -->
+      <div id="grille-jours" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px">
+        <!-- rempli par JS -->
+      </div>
+      <button onclick="sauverGrilleJours()"
+              style="width:100%;padding:10px;background:#8b6914;border:none;border-radius:6px;color:#fff;font-family:'Crimson Pro',serif;font-size:16px;cursor:pointer;">
+        Enregistrer
+      </button>
+    </div>
+
+    <!-- Onglet : Total mensuel -->
+    <div id="tab-mois" style="display:none">
+      <p style="font-family:'Crimson Pro',serif;font-size:13px;color:#7a6e5a;font-style:italic;margin-bottom:16px">
+        Entrez le total de mots écrits pour chaque mois passé. Les mots seront attribués au 1er du mois pour les graphiques annuels.
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px" id="import-mois-grid">
+        <!-- rempli par JS -->
+      </div>
+      <button onclick="sauverImportMensuel()"
+              style="width:100%;padding:10px;background:#4a7a5a;border:none;border-radius:6px;color:#fff;font-family:'Crimson Pro',serif;font-size:16px;cursor:pointer;">
+        Importer
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="js/theme.js"></script>
+</body>
+</html>

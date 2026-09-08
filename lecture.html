@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a1410'/><text x='50%' y='54%' font-family='Georgia,serif' font-size='22' fill='%23c4622d' text-anchor='middle' dominant-baseline='middle' font-style='italic'>e</text></svg>">
+<title>Lecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --ink:#1a1410;--ink3:#4a3f35;--ink4:#8c7b6e;
+  --paper:#faf7f2;--paper2:#f5f0e8;--paper3:#ede5d8;
+  --accent:#c4622d;--gold:#c4a02d;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Crimson Pro',serif;background:var(--paper);color:var(--ink);min-height:100vh;}
+
+/* Header */
+#header{background:var(--ink);padding:14px 32px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;}
+#header .logo{font-family:'Playfair Display',serif;font-size:18px;color:#e8d9c0;font-style:italic;}
+#header .logo em{color:var(--accent);}
+#livre-titre{font-family:'Playfair Display',serif;font-size:14px;color:#a09080;font-style:italic;}
+#header-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+#comm-toggle{background:none;border:1px solid #4a3f35;border-radius:4px;color:#a09080;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;cursor:pointer;transition:all .2s;}
+#comm-toggle:hover{border-color:#a09080;color:#e8d9c0;}
+#comm-toggle.on{border-color:var(--accent);color:var(--accent);}
+
+/* Layout */
+#layout{display:flex;max-width:1100px;margin:0 auto;padding:0 16px;}
+
+/* Sidebar chapitres */
+#nav-chap{width:200px;flex-shrink:0;padding:32px 16px 32px 0;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;}
+#nav-chap h3{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin-bottom:12px;}
+.nav-item{font-family:'Crimson Pro',serif;font-size:14px;color:var(--ink4);padding:4px 8px;border-radius:4px;cursor:pointer;transition:all .15s;border-left:2px solid transparent;margin-bottom:2px;}
+.nav-item:hover{color:var(--ink);background:var(--paper2);}
+.nav-item.active{color:var(--ink);border-left-color:var(--accent);}
+.nav-item.niv1{font-size:11px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--ink4);padding-top:10px;cursor:default;border-left:none;}
+
+/* Contenu */
+#contenu{flex:1;padding:48px 40px;max-width:720px;}
+.chapitre-section{margin-bottom:80px;}
+.chap-titre{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;text-align:center;margin-bottom:40px;color:var(--ink);padding-top:24px;border-top:1px solid var(--paper3);}
+.chap-titre.niv1{font-size:14px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin-bottom:8px;}
+
+/* Paragraphes */
+.para-wrap{position:relative;}
+.para-wrap:hover .para-btn{opacity:1;}
+.para-btn{position:absolute;left:-32px;top:2px;width:22px;height:22px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:13px;cursor:pointer;opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center;line-height:1;}
+.para-btn:hover{background:#a04820;}
+.para-btn.has-comm{opacity:.7;background:var(--gold);}
+p.para{font-size:20px;line-height:1.85;text-indent:1.8em;text-align:justify;margin:0;color:var(--ink);}
+
+/* Panel commentaires */
+#comm-panel{width:300px;flex-shrink:0;padding:32px 0 32px 24px;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;display:none;}
+#comm-panel.on{display:block;}
+#comm-panel h3{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin-bottom:16px;}
+.comm-item{background:var(--paper2);border:1px solid var(--paper3);border-radius:6px;padding:10px 12px;margin-bottom:10px;}
+.comm-auteur{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.comm-texte{font-size:14px;color:var(--ink);line-height:1.5;}
+.comm-date{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink4);margin-top:4px;}
+.comm-ref{font-size:11px;color:var(--ink4);font-style:italic;margin-bottom:6px;border-left:2px solid var(--paper3);padding-left:8px;}
+
+/* Modal commentaire */
+#comm-modal{display:none;position:fixed;inset:0;background:rgba(26,20,16,.5);z-index:1000;align-items:center;justify-content:center;}
+#comm-modal.on{display:flex;}
+#comm-box{background:var(--paper);border-radius:8px;padding:24px;width:360px;max-width:90vw;}
+#comm-box h3{font-family:'Playfair Display',serif;font-size:16px;margin-bottom:6px;}
+#comm-ref-preview{font-size:13px;color:var(--ink4);font-style:italic;margin-bottom:14px;padding:8px;background:var(--paper2);border-radius:4px;border-left:2px solid var(--paper3);}
+#comm-nom{width:100%;font-family:'Crimson Pro',serif;font-size:16px;padding:8px 10px;border:1px solid var(--paper3);border-radius:4px;background:var(--paper2);color:var(--ink);margin-bottom:10px;}
+#comm-texte-input{width:100%;font-family:'Crimson Pro',serif;font-size:16px;padding:8px 10px;border:1px solid var(--paper3);border-radius:4px;background:var(--paper2);color:var(--ink);resize:none;min-height:80px;margin-bottom:12px;}
+.comm-btns{display:flex;gap:8px;}
+.comm-btn-s{flex:1;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:8px;font-family:'Crimson Pro',serif;font-size:15px;cursor:pointer;}
+.comm-btn-c{flex:1;background:none;border:1px solid var(--paper3);border-radius:4px;padding:8px;font-family:'Crimson Pro',serif;font-size:15px;cursor:pointer;color:var(--ink3);}
+
+/* Mobile */
+@media(max-width: 768px){
+  #layout{flex-direction:column;padding:0;}
+  #nav-chap{width:100%;position:static;height:auto;padding:16px;border-bottom:1px solid var(--paper3);overflow-x:auto;white-space:nowrap;display:flex;gap:8px;align-items:center;}
+  #nav-chap h3{display:none;}
+  .nav-item{display:inline-block;white-space:nowrap;padding:4px 12px;border:1px solid var(--paper3);border-radius:12px;border-left:1px solid var(--paper3) !important;font-size:12px;margin-bottom:0;}
+  .nav-item.niv1{background:var(--paper3);font-size:10px;}
+  #contenu{padding:24px 20px;}
+  p.para{font-size:18px;}
+  .para-btn{left:-8px;width:18px;height:18px;font-size:11px;opacity:.5;}
+  .para-wrap:hover .para-btn{opacity:1;}
+  #comm-panel{width:100%;position:static;height:auto;padding:16px;border-top:2px solid var(--paper3);}
+  #comm-panel.on{display:block;}
+  #header{padding:10px 16px;}
+  .chap-titre{font-size:18px;margin-bottom:24px;}
+}
+#loading{text-align:center;padding:80px 32px;font-family:'Playfair Display',serif;font-size:20px;color:var(--ink4);font-style:italic;}
+#erreur{text-align:center;padding:80px 32px;color:var(--accent);}
+/* Bouton commentaire sur sélection */
+#sel-btn{display:none;position:fixed;background:var(--accent);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-family:'Crimson Pro',serif;font-size:13px;cursor:pointer;z-index:500;box-shadow:0 3px 10px rgba(0,0,0,.25);white-space:nowrap;transform:translateX(-50%);}
+#sel-btn:hover{background:#a04820;}
+
+/* Réactions 👍👎 */
+.comm-reactions{display:flex;gap:6px;margin-top:8px;}
+.reaction-btn{background:var(--paper3);border:1px solid var(--paper3);border-radius:20px;padding:3px 10px;font-size:12px;cursor:pointer;font-family:'JetBrains Mono',monospace;color:var(--ink4);transition:all .15s;display:flex;align-items:center;gap:4px;}
+.reaction-btn:hover{border-color:var(--ink4);color:var(--ink);}
+.reaction-btn.on{background:var(--paper2);border-color:var(--ink3);color:var(--ink);}
+.reaction-count{font-size:11px;}
+/* Surlignage des passages commentés */
+.comm-highlight { background: rgba(139,69,19,.15); border-bottom: 1.5px solid rgba(139,69,19,.4); border-radius: 2px; cursor: pointer; transition: background .2s; }
+.comm-highlight:hover { background: rgba(139,69,19,.3); }
+
+/* Surlignage du passage commenté (scroll vers) */
+.para-surligné { background: rgba(196,160,45,.18); border-radius: 3px; transition: background .3s; }
+.para-surligné-fort { background: rgba(196,160,45,.38); }
+
+/* Signet */
+.para-signet { border-left: 3px solid var(--gold) !important; padding-left: 6px; }
+#profil-btn { background:none; border:1px solid #4a3f35; border-radius:4px; color:#a09080; font-size:13px; padding:4px 8px; cursor:pointer; transition:all .2s; }
+#profil-btn:hover { border-color:#a09080; color:#e8d9c0; }
+#signet-btn { background:none; border:1px solid #4a3f35; border-radius:4px; color:#a09080; font-family:'JetBrains Mono',monospace; font-size:10px; padding:4px 10px; cursor:pointer; transition:all .2s; }
+#signet-btn:hover { border-color:#a09080; color:#e8d9c0; }
+#signet-btn.on { border-color:var(--gold); color:var(--gold); }
+
+/* Comm-item survol → surlignage */
+.comm-item { cursor:pointer; transition: border-color .2s; }
+.comm-item:hover { border-color: var(--gold); }
+
+/* Indicateur signet dans la nav */
+.nav-item .signet-dot { display:inline-block; width:6px; height:6px; background:var(--gold); border-radius:50%; margin-left:6px; vertical-align:middle; }
+
+
+/* Réponses */
+.comm-reponses{margin-top:8px;padding-left:12px;border-left:2px solid var(--paper3);}
+.comm-reponse{background:var(--paper);border:1px solid var(--paper3);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:13px;}
+.comm-reponse:last-child{margin-bottom:0;}
+.btn-repondre{background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);cursor:pointer;padding:0;margin-top:6px;}
+.btn-repondre:hover{color:var(--ink);}
+.reponse-form{margin-top:8px;display:none;}
+.reponse-form.on{display:block;}
+.reponse-input{width:100%;font-family:'Crimson Pro',serif;font-size:14px;padding:6px 8px;border:1px solid var(--paper3);border-radius:4px;background:var(--paper2);color:var(--ink);resize:none;min-height:56px;margin-bottom:6px;}
+.reponse-btns{display:flex;gap:6px;}
+.reponse-btn-s{background:var(--accent);color:#fff;border:none;border-radius:4px;padding:5px 14px;font-family:'Crimson Pro',serif;font-size:13px;cursor:pointer;}
+.reponse-btn-c{background:none;border:1px solid var(--paper3);border-radius:4px;padding:5px 14px;font-family:'Crimson Pro',serif;font-size:13px;cursor:pointer;color:var(--ink4);}
+
+/* ── Bulles texto ─────────────────────────────────── */
+.texto-bulle {
+  max-width: 72%;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+.texto-gauche {
+  background: #f0ede8;
+  border: 1px solid #d8d0c0;
+  margin-right: auto;
+  border-radius: 4px 12px 12px 12px;
+}
+.texto-droite {
+  background: #dce8f0;
+  border: 1px solid #b8ccd8;
+  margin-left: auto;
+  border-radius: 12px 4px 12px 12px;
+}
+.texto-bulle-nom {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: #7a6e5a;
+  margin-bottom: 3px;
+  font-style: italic;
+}
+.texto-bulle-msg { color: #2c2416; }
+
+/* Mode nuit — lecture */
+html.dark {
+  --ink:    #e8ddd0;
+  --ink3:   #8a7e74;
+  --ink4:   #5a5048;
+  --paper:  #1a1612;
+  --paper2: #231e18;
+  --paper3: #2e2820;
+}
+html.dark body { background: var(--paper); color: var(--ink); }
+html.dark #header { background: #0e0c0a; }
+html.dark #comm-panel { background: var(--paper2); border-color: var(--paper3); }
+html.dark .comm-item { background: var(--paper2); border-color: var(--paper3); }
+html.dark #nav-chap { background: var(--paper2); border-color: var(--paper3); }
+html.dark .comm-highlight { background: rgba(196,146,42,.06); border-bottom: 1.5px solid rgba(196,146,42,.5); color: var(--ink1); }
+html.dark .comm-highlight:hover { background: rgba(196,146,42,.12); }
+html.dark .para-surligné { background: rgba(196,160,45,.1); }
+html.dark .para-surligné-fort { background: rgba(196,160,45,.2); }
+
+</style>
+</head>
+<body>
+
+<div id="header">
+  <a href="index.html" class="logo" style="text-decoration:none"><em>L'Encrier</em></a>
+  <span id="livre-titre">Chargement…</span>
+  <div id="header-right">
+    <button id="profil-btn" onclick="modifierProfil()" title="Mon profil">👤</button>
+    <button id="signet-btn" onclick="poserSignet()" title="Marquer ma position de lecture">🔖 Poser</button>
+    <button id="signet-retour-btn" onclick="retourSignet()" title="Retourner au signet" style="display:none">📍 Signet</button>
+    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Mode nuit" style="background:none;border:none;cursor:pointer;font-size:14px;color:#e8d9c0;padding:4px 8px;">🌙</button>
+    <button id="comm-toggle" onclick="toggleComm()">💬 Commentaires</button>
+  </div>
+</div>
+
+<div id="layout">
+  <div id="nav-chap">
+    <h3>Chapitres</h3>
+    <div id="nav-liste"></div>
+  </div>
+
+  <div id="contenu">
+    <div id="loading">Chargement du roman…</div>
+    <div id="erreur" style="display:none"></div>
+    <div id="chapitres-list"></div>
+  </div>
+
+  <div id="comm-panel">
+    <h3>Commentaires</h3>
+    <div id="comm-liste"></div>
+  </div>
+</div>
+
+<!-- Modal nouveau commentaire -->
+<button id="sel-btn" onclick="ouvrirCommSelection()">💬 Commenter</button>
+
+<div id="comm-modal" onclick="if(event.target===this)fermerComm()">
+  <div id="comm-box">
+    <h3>Laisser un commentaire</h3>
+    <div id="comm-ref-preview"></div>
+    <input id="comm-nom" placeholder="Ton prénom…" maxlength="50">
+    <textarea id="comm-texte-input" placeholder="Ton commentaire…"></textarea>
+    <div class="comm-btns">
+      <button class="comm-btn-s" onclick="soumettreComm()">Envoyer</button>
+      <button class="comm-btn-c" onclick="fermerComm()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://derxiavgbnkntopuavdz.supabase.co'; // même base
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlcnhpYXZnYm5rbnRvcHVhdmR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjEwMzQsImV4cCI6MjA4OTczNzAzNH0.H5c6AO0Cs-fMKxYoO4Gm3IUUgSQ6OpdasKwOyfv7SHY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let projet = null;
+let commentaires = [];
+let commCible = null; // {chapIdx, paraIdx, texte}
+let commPanelOn = false;
+let estProprietaire = false; // true si l'utilisateur connecté est l'auteur du projet
+let monNomCookie = ''; // prénom du beta-lecteur pour les réactions
+
+// ── Charger le projet depuis l'URL ────────────────────────
+async function init(){
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('p');
+  if(!id){ afficherErreur('Aucun projet spécifié.'); return; }
+
+const { data, error } = await sb.from('projets')
+  .select('id, nom, contenu, user_id, partage')
+  .eq('id', id)
+  .single();
+if(error || !data){ afficherErreur('Projet introuvable ou accès refusé.'); return; }
+if(!data.partage){ afficherErreur('Ce projet n\'est pas encore partagé par l\'auteur.'); return; }
+
+projet = data;
+
+  // Vérifier si l'utilisateur connecté est le propriétaire
+  const { data: { session } } = await sb.auth.getSession();
+  if(session?.user?.id && session.user.id === projet.user_id){
+    estProprietaire = true;
+  }
+
+  // Charger le contenu textuel depuis la table chapitres
+const { data: chapsData, error: chapsError } = await sb.from('chapitres')
+  .select('chapitre_id, contenu')
+  .eq('projet_id', id);
+
+if(chapsError) console.warn('Erreur chargement chapitres:', chapsError.message);
+
+if(chapsData && chapsData.length > 0){
+  const chMap = {};
+  chapsData.forEach(ch => { chMap[ch.chapitre_id] = ch.contenu; });
+  (projet.contenu?.chapitres || []).forEach(ch => {
+    if(chMap[ch.id] !== undefined) ch.contenu = chMap[ch.id];
+  });
+} else if(!chapsError) {
+  console.warn('Table chapitres vide pour ce projet — vérifier la policy RLS Supabase');
+}
+
+  document.title = data.nom + ' — encre';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('livre-titre').textContent = data.nom;
+  renderLivre(); // appelé après injection du contenu
+  restaurerSignet();
+  // Demander nom + email dès l'arrivée si pas encore connus
+  await demanderIdentite();
+  await chargerCommentaires();
+}
+
+function afficherErreur(msg){
+  document.getElementById('loading').style.display = 'none';
+  const el = document.getElementById('erreur');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+// ── Rendre le livre ───────────────────────────────────────
+function renderLivre(){
+  const chapitres = projet.contenu?.chapitres || [];
+  const nav = document.getElementById('nav-liste');
+  const liste = document.getElementById('chapitres-list');
+  nav.innerHTML = ''; liste.innerHTML = '';
+
+  chapitres.forEach((ch, ci) => {
+    const niv = ch.niveau || 2;
+
+    // Nav
+    const navItem = document.createElement('div');
+    navItem.className = 'nav-item' + (niv===1?' niv1':'');
+    navItem.textContent = ch.titre || 'Sans titre';
+    navItem.dataset.ci = ci;
+    if(niv !== 1) navItem.onclick = () => document.getElementById('chap-'+ci)?.scrollIntoView({behavior:'smooth'});
+    nav.appendChild(navItem);
+
+    // Section chapitre
+    const section = document.createElement('div');
+    section.className = 'chapitre-section';
+    section.id = 'chap-'+ci;
+
+    const titreEl = document.createElement('div');
+    titreEl.className = 'chap-titre' + (niv===1?' niv1':'');
+    titreEl.textContent = ch.titre || '';
+    section.appendChild(titreEl);
+
+    // Paragraphes
+    if(ch.contenu && niv !== 1){
+      const tmp = document.createElement('div');
+      tmp.innerHTML = ch.contenu;
+      const nodes = Array.from(tmp.childNodes);
+      let pi = 0;
+      nodes.forEach(node => {
+        // ── Bulle texto ──────────────────────────────────
+        if(node.nodeType === 1 && node.classList?.contains('texto-bloc')){
+          const cote = node.getAttribute('data-texto') || 'gauche';
+          const nom = node.querySelector('.texto-nom')?.innerText?.trim() || '';
+          const msg = node.querySelector('.texto-msg')?.innerHTML || '';
+          if(!msg) return;
+          const bulle = document.createElement('div');
+          bulle.className = 'texto-bulle texto-' + cote;
+          bulle.innerHTML = (nom ? `<div class="texto-bulle-nom">${nom}</div>` : '') +
+                            `<div class="texto-bulle-msg">${msg}</div>`;
+          section.appendChild(bulle);
+          return;
+        }
+        // ── Paragraphe normal ─────────────────────────────
+        if(node.nodeName === 'P' || node.nodeName === 'DIV'){
+          const txt = node.innerText || node.textContent;
+          if(!txt.trim()) return;
+          const wrap = document.createElement('div');
+          wrap.className = 'para-wrap';
+          const p = document.createElement('p');
+          p.className = 'para';
+          p.innerHTML = node.innerHTML; // garder italique/gras
+          const btn = document.createElement('button');
+          btn.className = 'para-btn';
+          btn.title = 'Commenter ce paragraphe';
+          btn.textContent = '+';
+          btn.dataset.ci = ci;
+          btn.dataset.pi = pi;
+          btn.dataset.txt = txt.trim().substring(0, 80);
+          btn.onclick = () => {
+            const hasComm = btn.classList.contains('has-comm');
+            if(hasComm){
+              // Ouvrir le panel et scroller vers les comms existants
+              if(!commPanelOn) toggleComm(ci, pi);
+              else scrollerPanelVersComm(ci, pi);
+            } else {
+              ouvrirComm(ci, pi, txt.trim().substring(0, 80));
+            }
+            surlignerParagraphe(ci, pi, true);
+          };
+          // Signet visuel au rendu
+          wrap.dataset.ci = ci;
+          wrap.dataset.pi = pi;
+          wrap.appendChild(btn);
+          wrap.appendChild(p);
+          section.appendChild(wrap);
+          pi++;
+        }
+      });
+    }
+    liste.appendChild(section);
+  });
+
+  // Observer pour nav active — suit le chapitre au scroll
+  let _chapActifNav = -1;
+  const navClickables = () => Array.from(document.querySelectorAll('.nav-item:not(.niv1)'));
+
+  function setNavActif(ci){
+    if(ci === _chapActifNav) return;
+    _chapActifNav = ci;
+    const tous = navClickables();
+    tous.forEach(n => n.classList.toggle('active', parseInt(n.dataset.ci) === ci));
+    // Sur mobile : scroller la nav horizontale vers l'item actif
+    const navEl = document.getElementById('nav');
+    const actif = tous.find(n => parseInt(n.dataset.ci) === ci);
+    if(navEl && actif && navEl.scrollWidth > navEl.clientWidth){
+      actif.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
+    }
+    // Sur desktop : scroller la sidebar vers l'item actif
+    if(navEl && actif && navEl.scrollHeight > navEl.clientHeight){
+      actif.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    // Trouver le chapitre le plus haut visible
+    let meilleur = null, meilleurTop = Infinity;
+    document.querySelectorAll('.chapitre-section').forEach(el => {
+      const rect = el.getBoundingClientRect();
+      const headerH = document.getElementById('header')?.offsetHeight || 64;
+      if(rect.top < window.innerHeight * 0.6 && rect.bottom > headerH){
+        if(rect.top < meilleurTop){ meilleurTop = rect.top; meilleur = el; }
+      }
+    });
+    if(meilleur){
+      const ci = parseInt(meilleur.id.replace('chap-',''));
+      setNavActif(ci);
+    }
+  }, {threshold: 0, rootMargin: '-60px 0px -40% 0px'});
+  document.querySelectorAll('.chapitre-section').forEach(el => observer.observe(el));
+}
+
+// ── Commentaires ─────────────────────────────────────────
+async function chargerCommentaires(){
+  const { data } = await sb.from('commentaires').select('*').eq('projet_id', projet.id).order('cree_le');
+  // Séparer commentaires parents et réponses
+  commentaires = data || [];
+  marquerBoutons();
+  surligner_passages_commentes();
+  if(commPanelOn) renderCommPanel();
+
+  // Vérifier si des réponses sont nouvelles depuis la dernière visite
+  const vuLe = getVuLeCookie();
+  if(vuLe){
+    const nouvelles = commentaires.filter(c => c.parent_id && new Date(c.cree_le) > vuLe).length;
+    const btn = document.getElementById('comm-toggle');
+    if(nouvelles > 0 && btn){
+      btn.style.outline = '2px solid var(--accent)';
+      btn.title = `${nouvelles} nouvelle${nouvelles>1?'s':''} réponse${nouvelles>1?'s':''}`;
+      btn.dataset.nouvelles = nouvelles;
+    }
+  }
+}
+
+function marquerBoutons(){
+  document.querySelectorAll('.para-btn').forEach(btn => {
+    const ci = parseInt(btn.dataset.ci);
+    const pi = parseInt(btn.dataset.pi);
+    const txt = btn.dataset.txt || '';
+    // Chercher d'abord par texte du paragraphe, puis par index comme fallback
+    const n = commentaires.filter(c => {
+      if(c.parent_id) return false;
+      if(c.chapitre_idx !== ci) return false;
+      // Si le commentaire a un contexte, comparer avec le texte du bouton
+      if(c.contexte && txt){
+        return c.contexte.substring(0,40) === txt.substring(0,40);
+      }
+      // Fallback : index
+      return c.paragraphe_idx === pi;
+    }).length;
+    btn.classList.toggle('has-comm', n > 0);
+    btn.textContent = n > 0 ? n : '+';
+    btn.title = n > 0 ? `${n} commentaire${n>1?'s':''} — cliquer pour commenter` : 'Commenter ce paragraphe';
+  });
+}
+
+function toggleComm(cibleCi, ciblePi){
+  commPanelOn = !commPanelOn;
+  document.getElementById('comm-panel').classList.toggle('on', commPanelOn);
+  document.getElementById('comm-toggle').classList.toggle('on', commPanelOn);
+  if(commPanelOn){
+    // Retirer l'indicateur nouvelles réponses quand on ouvre
+    document.getElementById('comm-toggle').style.outline = '';
+    document.getElementById('comm-toggle').removeAttribute('data-nouvelles');
+    setVuLeCookie();
+  }
+  if(commPanelOn) renderCommPanel(cibleCi, ciblePi);
+}
+
+function scrollerPanelVersComm(ci, pi){
+  // Scroller le panel vers le premier comm-item du groupe ci-pi
+  const panel = document.getElementById('comm-panel');
+  if(!panel) return;
+  const items = panel.querySelectorAll('.comm-item');
+  for(const item of items){
+    const c = commentaires.find(c => c.id === item.dataset.id);
+    if(c && c.chapitre_idx === ci && c.paragraphe_idx === pi){
+      setTimeout(() => item.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
+      return;
+    }
+  }
+}
+
+function renderCommPanel(cibleCi, ciblePi){
+  const el = document.getElementById('comm-liste');
+  if(!commentaires.length){
+    el.innerHTML = '<div style="font-family:\'Crimson Pro\',serif;font-size:14px;color:var(--ink4);font-style:italic">Aucun commentaire pour l\'instant.</div>';
+    return;
+  }
+  el.innerHTML = '';
+
+  // Filtrer — seulement les commentaires parents (pas les réponses)
+  const parentsSeuls = commentaires.filter(c => !c.parent_id);
+
+  // Trier par position dans le texte (chapitre puis paragraphe)
+  const tries = [...parentsSeuls].sort((a,b) => {
+    if(a.chapitre_idx !== b.chapitre_idx) return a.chapitre_idx - b.chapitre_idx;
+    if(a.paragraphe_idx !== b.paragraphe_idx) return a.paragraphe_idx - b.paragraphe_idx;
+    return new Date(a.cree_le) - new Date(b.cree_le);
+  });
+
+  // Grouper par chapitre+paragraphe
+  const groupes = [];
+  let groupeActuel = null;
+  tries.forEach(c => {
+    const cle = `${c.chapitre_idx}-${c.paragraphe_idx}`;
+    if(!groupeActuel || groupeActuel.cle !== cle){
+      groupeActuel = { cle, ci: c.chapitre_idx, pi: c.paragraphe_idx, comms: [] };
+      groupes.push(groupeActuel);
+    }
+    groupeActuel.comms.push(c);
+  });
+
+  const chapitres = projet.contenu?.chapitres || [];
+  const monNom = monNomCookie || getNomCookie();
+
+  groupes.forEach(groupe => {
+    // En-tête du groupe — titre du chapitre
+    const chap = chapitres[groupe.ci];
+    if(chap){
+      const header = document.createElement('div');
+      header.style.cssText = 'font-family:"JetBrains Mono",monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin:16px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--paper3);cursor:pointer;';
+      header.title = 'Aller au paragraphe';
+      header.textContent = (chap.titre || 'Chapitre ' + (groupe.ci+1)) + ' · §' + (groupe.pi+1);
+      header.onclick = () => {
+        // Scroller jusqu'au paragraphe — chercher par contexte d'abord, puis par index
+        const premierComm = groupe.comms[0];
+        const ctxRecherche = premierComm?.contexte?.substring(0,40) || '';
+        const btns = document.querySelectorAll('.para-btn');
+        let trouve = null;
+        for(const btn of btns){
+          if(parseInt(btn.dataset.ci) !== groupe.ci) continue;
+          // Chercher par texte d'abord
+          if(ctxRecherche && btn.dataset.txt?.substring(0,40) === ctxRecherche){
+            trouve = btn; break;
+          }
+        }
+        // Fallback par index
+        if(!trouve){
+          for(const btn of btns){
+            if(parseInt(btn.dataset.ci)===groupe.ci && parseInt(btn.dataset.pi)===groupe.pi){
+              trouve = btn; break;
+            }
+          }
+        }
+        const cible = trouve?.closest('.para-wrap');
+        if(cible){
+          const headerH = document.getElementById('header')?.offsetHeight || 64;
+          const top = cible.getBoundingClientRect().top + window.scrollY - headerH - 32;
+          window.scrollTo({top, behavior:'smooth'});
+        }
+      };
+      el.appendChild(header);
+    }
+
+    // Commentaires du groupe
+    groupe.comms.forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'comm-item';
+      div.dataset.id = c.id;
+      div.addEventListener('mouseenter', () => surlignerParagraphe(c.chapitre_idx, c.paragraphe_idx, false));
+      div.addEventListener('click', (e) => {
+        // Ne pas interférer avec les boutons à l'intérieur
+        if(e.target.closest('button,textarea,input')) return;
+        // Scroller jusqu'au paragraphe
+        const btn = Array.from(document.querySelectorAll('.para-btn')).find(b =>
+          parseInt(b.dataset.ci) === c.chapitre_idx && parseInt(b.dataset.pi) === c.paragraphe_idx
+        );
+        const cible = btn?.closest('.para-wrap');
+        if(cible){
+          const headerH = document.getElementById('header')?.offsetHeight || 64;
+          const top = cible.getBoundingClientRect().top + window.scrollY - headerH - 32;
+          window.scrollTo({top, behavior:'smooth'});
+          surlignerParagraphe(c.chapitre_idx, c.paragraphe_idx, true);
+        }
+      });
+      div.addEventListener('mouseleave', () => {
+        document.querySelectorAll('.para-surligné').forEach(el => el.classList.remove('para-surligné'));
+      });
+      const date = new Date(c.cree_le).toLocaleDateString('fr-CA');
+
+      const reactions = c.reactions || {};
+      const plusList = reactions.pouce_haut || [];
+      const moinsList = reactions.pouce_bas || [];
+      const jaiPlus = plusList.includes(monNom);
+      const jaiMoins = moinsList.includes(monNom);
+
+      const btnSuppr = estProprietaire
+        ? `<button onclick="supprimerCommLecture('${c.id}')" style="background:none;border:none;cursor:pointer;color:var(--ink4);font-size:12px;padding:0;margin-left:6px;" title="Supprimer">✕</button>`
+        : '';
+
+      // Réponses à ce commentaire
+      const reponses = commentaires.filter(r => r.parent_id === c.id);
+      const reponsesHTML = reponses.length > 0
+        ? `<div class="comm-reponses">${reponses.map(r => `
+            <div class="comm-reponse">
+              <div class="comm-auteur" style="font-size:8px">${r.auteur}</div>
+              <div>${r.texte}</div>
+            </div>`).join('')}
+          </div>` : '';
+
+      div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="comm-auteur">${c.auteur}</div>
+          ${btnSuppr}
+        </div>
+        ${c.contexte?`<div class="comm-ref">« ${c.contexte} »</div>`:''}
+        <div class="comm-texte">${c.texte}</div>
+        <div class="comm-date">${date}</div>
+        <div class="comm-reactions">
+          <button class="reaction-btn${jaiPlus?' on':''}" onclick="reagir('${c.id}','pouce_haut')" title="${plusList.length > 0 ? plusList.join(', ') : 'Personne encore'}">
+            👍 <span class="reaction-count">${plusList.length||''}</span>
+          </button>
+          <button class="reaction-btn${jaiMoins?' on':''}" onclick="reagir('${c.id}','pouce_bas')" title="${moinsList.length > 0 ? moinsList.join(', ') : 'Personne encore'}">
+            👎 <span class="reaction-count">${moinsList.length||''}</span>
+          </button>
+        </div>
+        ${reponsesHTML}
+        <button class="btn-repondre" onclick="toggleReponseForm('${c.id}')">↩ Répondre</button>
+        <div class="reponse-form" id="form-rep-${c.id}">
+          <textarea class="reponse-input" id="txt-rep-${c.id}" placeholder="Ta réponse…"></textarea>
+          <div class="reponse-btns">
+            <button class="reponse-btn-s" onclick="soumettreReponse('${c.id}')">Envoyer</button>
+            <button class="reponse-btn-c" onclick="toggleReponseForm('${c.id}')">Annuler</button>
+          </div>
+        </div>`;
+      el.appendChild(div);
+    });
+  });
+  // Scroller le panel vers le bon groupe si demandé
+  if(cibleCi !== undefined && ciblePi !== undefined){
+    scrollerPanelVersComm(cibleCi, ciblePi);
+  }
+}
+
+async function supprimerCommLecture(id){
+  if(!confirm('Supprimer ce commentaire ?')) return;
+  const { error } = await sb.from('commentaires').delete().eq('id', id);
+  if(error){ alert('Erreur : ' + error.message); return; }
+  commentaires = commentaires.filter(c => c.id !== id);
+  marquerBoutons();
+  renderCommPanel();
+}
+
+function toggleReponseForm(commId){
+  const form = document.getElementById('form-rep-' + commId);
+  if(!form) return;
+  const isOn = form.classList.toggle('on');
+  if(isOn){
+    // Préremplir le nom
+    const nomSauvé = decodeURIComponent(getNomCookie() || '');
+    if(!nomSauvé){
+      const nom = prompt('Ton prénom ?')?.trim();
+      if(!nom){ form.classList.remove('on'); return; }
+      setNomCookie(nom);
+      monNomCookie = nom;
+    }
+    document.getElementById('txt-rep-' + commId)?.focus();
+  }
+}
+
+async function soumettreReponse(parentId){
+  const textarea = document.getElementById('txt-rep-' + parentId);
+  const texte = textarea?.value.trim();
+  if(!texte){ textarea?.focus(); return; }
+
+  const identite = await demanderIdentite();
+  if(!identite) return;
+  const nom = identite.nom;
+  const emailBeta = identite.email;
+  const parent = commentaires.find(c => c.id === parentId);
+  if(!parent) return;
+
+  const { error } = await sb.from('commentaires').insert({
+    projet_id: projet.id,
+    chapitre_idx: parent.chapitre_idx,
+    paragraphe_idx: parent.paragraphe_idx,
+    contexte: null,
+    auteur: nom,
+    texte,
+    parent_id: parentId
+  });
+
+  if(error){ alert('Erreur : ' + error.message); return; }
+
+  // Notifier l'auteur du commentaire parent par email
+  try {
+    fetch('https://derxiavgbnkntopuavdz.supabase.co/functions/v1/quick-worker', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify({ record: {
+        parent_id: parentId,
+        user_id: null,
+        contenu: texte,
+        auteur: nom
+      }})
+    });
+  } catch(e) { /* silencieux — l'email est best-effort */ }
+
+  await chargerCommentaires();
+  if(commPanelOn) renderCommPanel();
+}
+
+async function reagir(commId, type){
+  // Besoin d'un nom pour réagir
+  const identiteR = await demanderIdentite();
+  if(!identiteR) return;
+  let nom = identiteR.nom;
+  monNomCookie = nom;
+
+  const comm = commentaires.find(c => c.id === commId);
+  if(!comm) return;
+
+  const reactions = JSON.parse(JSON.stringify(comm.reactions || {}));
+  const plusList = reactions.pouce_haut || [];
+  const moinsList = reactions.pouce_bas || [];
+
+  if(type === 'pouce_haut'){
+    const idx = plusList.indexOf(nom);
+    if(idx >= 0) plusList.splice(idx, 1); // toggle off
+    else {
+      plusList.push(nom);
+      // Retirer du pouce_bas si présent
+      const i2 = moinsList.indexOf(nom);
+      if(i2 >= 0) moinsList.splice(i2, 1);
+    }
+  } else {
+    const idx = moinsList.indexOf(nom);
+    if(idx >= 0) moinsList.splice(idx, 1); // toggle off
+    else {
+      moinsList.push(nom);
+      const i2 = plusList.indexOf(nom);
+      if(i2 >= 0) plusList.splice(i2, 1);
+    }
+  }
+  reactions.pouce_haut = plusList;
+  reactions.pouce_bas = moinsList;
+
+  const { error } = await sb.from('commentaires').update({ reactions }).eq('id', commId);
+  if(error){ console.error(error); return; }
+  comm.reactions = reactions;
+  renderCommPanel();
+}
+
+function getVuLeCookie(){
+  const v = document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('beta_vu_le='))?.split('=')[1];
+  return v ? new Date(decodeURIComponent(v)) : null;
+}
+function setVuLeCookie(){
+  document.cookie = `beta_vu_le=${encodeURIComponent(new Date().toISOString())};max-age=31536000;path=/`;
+}
+
+function getNomCookie(){
+  return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('beta_nom='))?.split('=')[1] || '';
+}
+function setNomCookie(nom){
+  document.cookie = `beta_nom=${encodeURIComponent(nom)};max-age=31536000;path=/`;
+}
+function getEmailCookie(){
+  return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('beta_email='))?.split('=')[1] || '';
+}
+function setEmailCookie(email){
+  document.cookie = `beta_email=${encodeURIComponent(email)};max-age=31536000;path=/`;
+}
+
+// Demander nom + email si pas encore connus, retourne {nom, email} ou null si annulé
+function demanderIdentite(){
+  return new Promise((resolve) => {
+    const nomExist = decodeURIComponent(getNomCookie() || '');
+    const emailExist = decodeURIComponent(getEmailCookie() || '');
+    if(nomExist && emailExist){ resolve({nom: nomExist, email: emailExist}); return; }
+
+    // Créer une modale légère
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:3000;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#faf8f4;border-radius:8px;padding:28px 32px;max-width:360px;width:90%;font-family:'Crimson Pro',serif;color:#2c1f14;">
+        <div style="font-size:18px;font-weight:600;margin-bottom:6px;">Avant de commenter…</div>
+        <div style="font-size:14px;color:#6a5a4a;margin-bottom:20px;">Pour que l'auteure puisse te répondre par email.</div>
+        <input id="_beta_nom" placeholder="Ton prénom" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d4c4b0;border-radius:4px;font-family:'Crimson Pro',serif;font-size:15px;background:#f0ebe3;color:#2c1f14;margin-bottom:10px;" value="${nomExist}">
+        <input id="_beta_email" type="email" placeholder="Ton email" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d4c4b0;border-radius:4px;font-family:'Crimson Pro',serif;font-size:15px;background:#f0ebe3;color:#2c1f14;margin-bottom:18px;" value="${emailExist}">
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="_beta_annuler" style="padding:8px 18px;background:none;border:1px solid #d4c4b0;border-radius:4px;font-family:'Crimson Pro',serif;font-size:14px;cursor:pointer;color:#6a5a4a;">Annuler</button>
+          <button id="_beta_ok" style="padding:8px 18px;background:#2c1f14;border:none;border-radius:4px;font-family:'Crimson Pro',serif;font-size:14px;cursor:pointer;color:#faf8f4;">Continuer</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#_beta_ok').onclick = () => {
+      const nom = overlay.querySelector('#_beta_nom').value.trim();
+      const email = overlay.querySelector('#_beta_email').value.trim();
+      if(!nom || !email){ overlay.querySelector('#_beta_nom').focus(); return; }
+      setNomCookie(nom); setEmailCookie(email);
+      monNomCookie = nom;
+      document.body.removeChild(overlay);
+      resolve({nom, email});
+    };
+    overlay.querySelector('#_beta_annuler').onclick = () => {
+      document.body.removeChild(overlay);
+      resolve(null);
+    };
+    // Entrée = valider
+    overlay.addEventListener('keydown', e => { if(e.key === 'Enter') overlay.querySelector('#_beta_ok').click(); });
+    setTimeout(() => overlay.querySelector('#_beta_nom').focus(), 50);
+  });
+}
+
+function ouvrirComm(ci, pi, txt){
+  commCible = {ci, pi, txt};
+  document.getElementById('comm-ref-preview').textContent = '«\u00a0' + txt + '\u00a0»';
+  document.getElementById('comm-texte-input').value = '';
+  // Préremplir le nom depuis le cookie
+  const nomSauvé = decodeURIComponent(getNomCookie());
+  document.getElementById('comm-nom').value = nomSauvé;
+  document.getElementById('comm-modal').classList.add('on');
+  if(nomSauvé) document.getElementById('comm-texte-input').focus();
+  else document.getElementById('comm-nom').focus();
+}
+
+function fermerComm(){
+  document.getElementById('comm-modal').classList.remove('on');
+  commCible = null;
+}
+
+async function soumettreComm(){
+  if(!commCible) return;
+  // Sauvegarder ci/pi avant tout — demanderIdentite peut effacer commCible
+  const ci = commCible.ci;
+  const pi = commCible.pi;
+  const txt = commCible.txt;
+
+  const identite = await demanderIdentite();
+  if(!identite) return;
+  if(!commCible) commCible = {ci, pi, txt}; // restaurer si effacé pendant la modale
+
+  const nom = identite.nom;
+  const texte = document.getElementById('comm-texte-input').value.trim();
+  if(!texte) { document.getElementById('comm-texte-input').focus(); return; }
+
+  setNomCookie(nom);
+  monNomCookie = nom;
+
+  const { error } = await sb.from('commentaires').insert({
+    projet_id: projet.id,
+    chapitre_idx: ci,
+    paragraphe_idx: pi,
+    contexte: txt,
+    auteur: nom,
+    texte,
+    email: identite.email || null
+  });
+
+  if(error){ alert('Erreur : ' + error.message); return; }
+  fermerComm();
+  await chargerCommentaires();
+  if(!commPanelOn) toggleComm(ci, pi);
+  else renderCommPanel(ci, pi);
+}
+
+// ── Sélection de texte (desktop) ─────────────────────────
+let selTexte = '';
+let selCi = null;
+let selPi = null;
+
+document.addEventListener('mouseup', () => {
+  // Ignorer sur mobile
+  if(window.matchMedia('(hover:none)').matches) return;
+  setTimeout(gererSelection, 50);
+});
+
+document.addEventListener('mousedown', (e) => {
+  if(e.target.closest('#sel-btn')) return;
+  cacherBoutonSel();
+});
+
+function gererSelection(){
+  const sel = window.getSelection();
+  const txt = sel?.toString().trim();
+  if(!txt || txt.length < 3){
+    cacherBoutonSel();
+    return;
+  }
+  // Trouver le paragraphe parent
+  const node = sel.anchorNode;
+  const el = node?.nodeType === 3 ? node.parentElement : node;
+  const para = el?.closest('.para-wrap');
+  if(!para){
+    cacherBoutonSel();
+    return;
+  }
+  selTexte = txt.length > 100 ? txt.substring(0, 100) + '…' : txt;
+  selCi = parseInt(para.querySelector('.para-btn')?.dataset.ci);
+  selPi = parseInt(para.querySelector('.para-btn')?.dataset.pi);
+
+  // Positionner le bouton au-dessus de la sélection
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  const btn = document.getElementById('sel-btn');
+  btn.style.left = (rect.left + rect.width/2) + 'px';
+  btn.style.top = (rect.top - 44) + 'px';
+  btn.style.display = 'block';
+}
+
+function cacherBoutonSel(){
+  document.getElementById('sel-btn').style.display = 'none';
+  selTexte = '';
+}
+
+function ouvrirCommSelection(){
+  const txt = selTexte;
+  const ci = selCi;
+  const pi = selPi;
+  cacherBoutonSel();
+  ouvrirComm(ci, pi, txt);
+  window.getSelection()?.removeAllRanges();
+}
+
+
+
+// ── Surlignage des passages commentés dans le texte ─────
+function surligner_passages_commentes(){
+  // Retirer les anciens highlights
+  document.querySelectorAll('.comm-highlight').forEach(el => {
+    el.replaceWith(document.createTextNode(el.textContent));
+  });
+
+  // Pour chaque commentaire avec contexte, trouver et surligner le texte
+  const parentsSeuls = commentaires.filter(c => !c.parent_id && c.contexte && c.contexte.length > 2);
+  parentsSeuls.forEach(c => {
+    // Utiliser les 40 premiers caractères pour trouver le passage (contexte peut être tronqué)
+    const recherche = c.contexte.replace(/…$/, '').trim().substring(0, 40);
+    if(recherche.length < 3) return;
+
+    // Trouver le bon paragraphe
+    const btn = Array.from(document.querySelectorAll('.para-btn')).find(b =>
+      parseInt(b.dataset.ci) === c.chapitre_idx && parseInt(b.dataset.pi) === c.paragraphe_idx
+    );
+    const wrap = btn?.closest('.para-wrap');
+    if(!wrap) return;
+
+    // Chercher dans tous les noeuds texte du paragraphe
+    const walker = document.createTreeWalker(wrap, NodeFilter.SHOW_TEXT);
+    let node;
+    while(node = walker.nextNode()){
+      const idx = node.textContent.indexOf(recherche);
+      if(idx === -1) continue;
+
+      // Surligner jusqu'à la fin de la phrase (point, guillemet) ou 120 chars max
+      const texteApres = node.textContent.substring(idx);
+      const finMatch = texteApres.search(/[.!?»"]\s|$/);
+      const longueur = Math.min(finMatch > 10 ? finMatch + 1 : recherche.length, 120);
+
+      const before = document.createTextNode(node.textContent.substring(0, idx));
+      const highlight = document.createElement('mark');
+      highlight.className = 'comm-highlight';
+      highlight.title = `Commentaire de ${c.auteur || 'bêta'}`;
+      highlight.textContent = node.textContent.substring(idx, idx + longueur);
+      highlight.onclick = () => {
+        if(!commPanelOn) toggleComm(c.chapitre_idx, c.paragraphe_idx);
+        else scrollerPanelVersComm(c.chapitre_idx, c.paragraphe_idx);
+      };
+      const after = document.createTextNode(node.textContent.substring(idx + longueur));
+      node.parentNode.replaceChild(after, node);
+      after.parentNode.insertBefore(highlight, after);
+      after.parentNode.insertBefore(before, highlight);
+      break;
+    }
+  });
+}
+
+// ── Surlignage du paragraphe commenté ────────────────────
+let _surligneTimer = null;
+function surlignerParagraphe(ci, pi, fort=false){
+  // Retirer tous les surlignages existants
+  document.querySelectorAll('.para-surligné,.para-surligné-fort').forEach(el => {
+    el.classList.remove('para-surligné','para-surligné-fort');
+  });
+  // Trouver le bon paragraphe
+  const btn = Array.from(document.querySelectorAll('.para-btn')).find(b =>
+    parseInt(b.dataset.ci) === ci && parseInt(b.dataset.pi) === pi
+  );
+  const wrap = btn?.closest('.para-wrap');
+  if(!wrap) return;
+  wrap.classList.add(fort ? 'para-surligné-fort' : 'para-surligné');
+  clearTimeout(_surligneTimer);
+  if(fort){
+    // Surlignage fort → doux après 2s → effacé après 5s
+    _surligneTimer = setTimeout(() => {
+      wrap.classList.replace('para-surligné-fort','para-surligné');
+      _surligneTimer = setTimeout(() => wrap.classList.remove('para-surligné'), 3000);
+    }, 2000);
+  }
+}
+
+// ── Signets ───────────────────────────────────────────────
+function getSignetKey(){ return 'encre_signet_' + projet?.id; }
+function getSignet(){
+  try { return JSON.parse(localStorage.getItem(getSignetKey())); } catch(e){ return null; }
+}
+function sauverSignet(ci, pi){
+  localStorage.setItem(getSignetKey(), JSON.stringify({ci, pi}));
+}
+
+async function modifierProfil(){
+  // Forcer la modale même si cookie existe déjà
+  const nomExist = decodeURIComponent(getNomCookie() || '');
+  const emailExist = decodeURIComponent(getEmailCookie() || '');
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:3000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:#faf8f4;border-radius:8px;padding:28px 32px;max-width:360px;width:90%;font-family:'Crimson Pro',serif;color:#2c1f14;">
+      <div style="font-size:18px;font-weight:600;margin-bottom:6px;">Mon profil</div>
+      <div style="font-size:14px;color:#6a5a4a;margin-bottom:20px;">Pour recevoir les réponses à tes commentaires.</div>
+      <input id="_profil_nom" placeholder="Ton prénom" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d4c4b0;border-radius:4px;font-family:'Crimson Pro',serif;font-size:15px;background:#f0ebe3;color:#2c1f14;margin-bottom:10px;" value="${nomExist}">
+      <input id="_profil_email" type="email" placeholder="Ton email" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d4c4b0;border-radius:4px;font-family:'Crimson Pro',serif;font-size:15px;background:#f0ebe3;color:#2c1f14;margin-bottom:18px;" value="${emailExist}">
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="_profil_annuler" style="padding:8px 18px;background:none;border:1px solid #d4c4b0;border-radius:4px;font-family:'Crimson Pro',serif;font-size:14px;cursor:pointer;color:#6a5a4a;">Annuler</button>
+        <button id="_profil_ok" style="padding:8px 18px;background:#2c1f14;border:none;border-radius:4px;font-family:'Crimson Pro',serif;font-size:14px;cursor:pointer;color:#faf8f4;">Sauvegarder</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#_profil_ok').onclick = async () => {
+    const nom = overlay.querySelector('#_profil_nom').value.trim();
+    const email = overlay.querySelector('#_profil_email').value.trim();
+    if(!nom || !email) return;
+
+    setNomCookie(nom);
+    setEmailCookie(email);
+    monNomCookie = nom;
+    document.body.removeChild(overlay);
+
+    // Mettre à jour tous ses commentaires existants (par ancien nom)
+    if(nomExist && projet?.id){
+      const { error } = await sb.from('commentaires')
+        .update({ auteur: nom, email })
+        .eq('projet_id', projet.id)
+        .eq('auteur', nomExist);
+      if(!error) flash('Profil mis à jour ✓');
+      else flash('Erreur : ' + error.message);
+    } else {
+      flash('Profil sauvegardé ✓');
+    }
+  };
+  overlay.querySelector('#_profil_annuler').onclick = () => document.body.removeChild(overlay);
+  overlay.addEventListener('keydown', e => { if(e.key === 'Enter') overlay.querySelector('#_profil_ok').click(); });
+  setTimeout(() => overlay.querySelector('#_profil_nom').focus(), 50);
+}
+
+function poserSignet(){
+  // Toujours poser sur le premier paragraphe visible
+  const headerH = document.getElementById('header')?.offsetHeight || 64;
+  let meilleur = null;
+  for(const wrap of document.querySelectorAll('.para-wrap')){
+    const rect = wrap.getBoundingClientRect();
+    if(rect.bottom > headerH + 8){ meilleur = wrap; break; }
+  }
+  if(!meilleur) return;
+  const btn = meilleur.querySelector('.para-btn');
+  const ci = parseInt(btn?.dataset.ci);
+  const pi = parseInt(btn?.dataset.pi);
+  sauverSignet(ci, pi);
+  afficherSignetVisuel(ci, pi);
+  flash('Signet posé ✓');
+}
+
+function retourSignet(){
+  const s = getSignet();
+  if(!s){ flash('Aucun signet posé'); return; }
+  const btnSignet = Array.from(document.querySelectorAll('.para-btn')).find(b =>
+    parseInt(b.dataset.ci) === s.ci && parseInt(b.dataset.pi) === s.pi
+  );
+  const cible = btnSignet?.closest('.para-wrap');
+  if(!cible){ flash('Paragraphe introuvable'); return; }
+  const headerH = document.getElementById('header')?.offsetHeight || 64;
+  const top = cible.getBoundingClientRect().top + window.scrollY - headerH - 32;
+  window.scrollTo({top, behavior:'smooth'});
+  surlignerParagraphe(s.ci, s.pi, true);
+  flash('📍 Retour au signet');
+}
+
+function afficherSignetVisuel(ci, pi){
+  // Retirer l'ancien
+  document.querySelectorAll('.para-signet').forEach(el => el.classList.remove('para-signet'));
+  // Poser le nouveau
+  const btn = Array.from(document.querySelectorAll('.para-btn')).find(b =>
+    parseInt(b.dataset.ci) === ci && parseInt(b.dataset.pi) === pi
+  );
+  btn?.closest('.para-wrap')?.classList.add('para-signet');
+  // Mettre à jour la nav
+  majNavSignet(ci);
+  // Bouton header actif
+  document.getElementById('signet-btn')?.classList.add('on');
+  document.getElementById('signet-retour-btn').style.display = 'inline-block';
+}
+
+function majNavSignet(chapCible){
+  document.querySelectorAll('.nav-item .signet-dot').forEach(d => d.remove());
+  const navItems = document.querySelectorAll('.nav-item:not(.niv1)');
+  navItems[chapCible]?.insertAdjacentHTML('beforeend','<span class="signet-dot" title="Signet"></span>');
+}
+
+function restaurerSignet(){
+  const s = getSignet();
+  if(!s) return;
+  // Attendre que le DOM soit rendu
+  setTimeout(() => afficherSignetVisuel(s.ci, s.pi), 100);
+}
+
+function flash(msg){
+  let el = document.getElementById('_flash');
+  if(!el){
+    el = document.createElement('div');
+    el.id = '_flash';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#e8d9c0;font-family:"JetBrains Mono",monospace;font-size:11px;padding:8px 18px;border-radius:20px;z-index:2000;pointer-events:none;transition:opacity .3s;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 2000);
+}
+
+init();
+</script>
+<script src="js/theme.js"></script>
+</body>
+</html>

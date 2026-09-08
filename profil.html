@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil auteur·e — L'Encrier</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate icon" href="favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper1:#f5f0e8;--paper2:#ede8de;--paper3:#d8d0c0;--paper4:#c8bfae;
+  --ink1:#2c2416;--ink2:#4a3f2f;--ink3:#7a6e5a;--ink4:#a09080;
+  --accent:#8b6914;--gold:#c4922a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper1);color:var(--ink1);font-family:'Crimson Pro',serif;min-height:100vh;}
+.bandeau{width:100%;background:var(--ink1);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;}
+.bandeau-logo{font-family:'IM Fell English',serif;font-size:20px;color:#ede8de;letter-spacing:.04em;text-decoration:none;}
+.bandeau-sub{font-size:12px;color:#7a6e5a;font-style:italic;}
+.page{max-width:760px;margin:0 auto;padding:36px 20px 60px;}
+.carte-id{background:var(--ink1);border-radius:16px;padding:32px;display:flex;gap:24px;align-items:flex-start;margin-bottom:24px;}
+.avatar{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #3a3028;flex-shrink:0;background:#3a3028;display:flex;align-items:center;justify-content:center;font-size:34px;color:#7a6e5a;}
+.id-infos{flex:1;min-width:0;}
+.pseudo{font-family:'IM Fell English',serif;font-size:28px;color:#ede8de;line-height:1.1;margin-bottom:6px;}
+.genres{font-size:14px;color:var(--gold);font-style:italic;margin-bottom:10px;}
+.bio{font-size:16px;color:#c4b8a8;line-height:1.65;white-space:pre-wrap;}
+.liens{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.lien{display:inline-flex;align-items:center;gap:5px;background:#3a3028;border-radius:20px;padding:5px 12px;font-size:13px;color:var(--gold);text-decoration:none;}
+.lien:hover{background:#4a3f30;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.stat-bloc{background:var(--paper2);border-radius:12px;padding:18px 16px;text-align:center;}
+.stat-val{font-family:'IM Fell English',serif;font-size:30px;color:var(--accent);line-height:1;margin-bottom:4px;}
+.stat-label{font-size:13px;color:var(--ink3);font-style:italic;}
+.stat-sub{font-size:11px;color:var(--ink4);margin-top:3px;}
+.objectif-bloc{background:var(--paper2);border-radius:12px;padding:20px 20px 16px;margin-bottom:24px;}
+.bloc-titre{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px;}
+.objectif-nom{font-size:18px;color:var(--ink1);font-style:italic;margin-bottom:10px;}
+.prog-bar-bg{background:var(--paper3);border-radius:4px;height:8px;margin-bottom:8px;overflow:hidden;}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:4px;}
+.prog-meta{display:flex;justify-content:space-between;font-size:13px;color:var(--ink3);}
+.graphique-bloc{background:var(--paper2);border-radius:12px;padding:20px;margin-bottom:24px;}
+.graph-mois{margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.graph-mois-label{font-size:11px;color:var(--ink3);font-style:italic;width:52px;flex-shrink:0;}
+.graph-cell{width:11px;height:11px;border-radius:2px;cursor:default;} .graph-ligne{display:flex;gap:3px;flex-wrap:wrap;} .graph-cell{width:13px;height:13px;border-radius:2px;cursor:default;flex-shrink:0;}
+.projets-liste{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.projet-carte{background:var(--paper2);border-radius:10px;overflow:hidden;}
+.projet-couv{width:100%;height:120px;object-fit:cover;background:var(--paper3);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--ink4);}
+.projet-body{padding:12px 14px;}
+.projet-nom{font-size:16px;font-weight:600;color:var(--ink1);margin-bottom:3px;}
+.projet-meta{font-size:12px;color:var(--ink3);font-style:italic;margin-bottom:6px;}
+.projet-mots{font-size:12px;color:var(--accent);font-family:monospace;}
+.projet-syn{font-size:13px;color:var(--ink2);margin-top:6px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.etat{text-align:center;padding:80px 20px;font-size:18px;color:var(--ink3);font-style:italic;}
+footer{text-align:center;padding:24px;font-size:12px;color:var(--ink4);}
+footer a{color:var(--accent);text-decoration:none;}
+@media(max-width:500px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .carte-id{flex-direction:column;align-items:center;text-align:center;}
+  .liens{justify-content:center;}
+}
+
+/* Mode nuit — profil */
+html.dark {
+  --paper1: #1a1612;
+  --paper2: #231e18;
+  --paper3: #2e2820;
+  --paper4: #3a3228;
+  --ink1:   #e8ddd0;
+  --ink2:   #c8bfb4;
+  --ink3:   #8a7e74;
+  --ink4:   #5a5048;
+  --accent: #c4922a;
+  --gold:   #e0aa40;
+}
+html.dark body { background: var(--paper1); color: var(--ink1); }
+html.dark .bandeau { background: #0e0c0a; }
+</style>
+</head>
+<body>
+<div class="bandeau">
+  <a class="bandeau-logo" href="index.html">✒ L'Encrier</a>
+  <span class="bandeau-sub">Atelier d'écriture</span>
+</div>
+<div class="page" id="page">
+  <div class="etat" id="etat">Chargement…</div>
+</div>
+<footer>Créé avec <a href="index.html">L'Encrier</a></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL='https://derxiavgbnkntopuavdz.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlcnhpYXZnYm5rbnRvcHVhdmR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjEwMzQsImV4cCI6MjA4OTczNzAzNH0.H5c6AO0Cs-fMKxYoO4Gm3IUUgSQ6OpdasKwOyfv7SHY';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+function icone(url){
+  if(url.includes('instagram'))return'📸';
+  if(url.includes('twitter')||url.includes('x.com'))return'𝕏';
+  if(url.includes('facebook'))return'📘';
+  if(url.includes('tiktok'))return'🎵';
+  if(url.includes('youtube'))return'▶';
+  if(url.includes('linkedin'))return'💼';
+  if(url.includes('bluesky')||url.includes('bsky'))return'🦋';
+  if(url.includes('mastodon'))return'🐘';
+  return'🔗';
+}
+function labelURL(url){
+  try{const h=new URL(url).hostname.replace('www.','');return h.split('.')[0].charAt(0).toUpperCase()+h.split('.')[0].slice(1);}
+  catch(e){return url;}
+}
+function fmt(n){return Number(n).toLocaleString('fr-FR');}
+
+let graphAnnee = new Date().getFullYear();
+let graphStatsJours = {};
+
+function anneeMin(statsJours){
+  const keys = Object.keys(statsJours).filter(k=>statsJours[k]>0);
+  if(!keys.length) return new Date().getFullYear();
+  return parseInt(keys.sort()[0].slice(0,4));
+}
+
+let graphStatsManuelles = {};
+
+function renderGraphique(statsJours, annee, statsManuelles){
+  graphStatsJours = statsJours;
+  graphStatsManuelles = statsManuelles || {};
+  const niveaux=['#e8e0d0','#d4b896','#b8915c','#8b6914','#5c4010'];
+  const anneeActuelle = new Date().getFullYear();
+  const moisActuel = new Date().getMonth(); // 0-based
+  const vals=Object.values(statsJours).filter(v=>v>0);
+  // Pour le calcul des couleurs, exclure les entrées du 1er du mois avec des valeurs
+  // très élevées — ce sont des totaux mensuels migrés, pas des journées réelles
+  const valsJours = Object.entries(statsJours)
+    .filter(([k,v]) => v > 0 && !(k.endsWith('-01') && v > 10000))
+    .map(([,v]) => v);
+  const moisLabels=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const min = anneeMin(statsJours);
+
+  const peutReculer = annee > min;
+  const peutAvancer = annee < anneeActuelle;
+
+  // Navigation
+  let nav = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <button onclick="changerAnneeGraphe(-1)" style="background:none;border:none;font-size:18px;cursor:${peutReculer?'pointer':'default'};color:${peutReculer?'var(--accent)':'var(--paper3)'}">←</button>
+    <span style="font-family:'IM Fell English',serif;font-size:18px;color:var(--ink1)">${annee}</span>
+    <button onclick="changerAnneeGraphe(1)" style="background:none;border:none;font-size:18px;cursor:${peutAvancer?'pointer':'default'};color:${peutAvancer?'var(--accent)':'var(--paper3)'}">→</button>
+  </div>`;
+
+  const blocs=[];
+  for(let m=0;m<=11;m++){
+    if(annee === anneeActuelle && m > moisActuel) break;
+    const nbJours=new Date(annee,m+1,0).getDate();
+    const moisCle = `${annee}-${String(m+1).padStart(2,'0')}`;
+    const cellules=[];
+    for(let j=1;j<=nbJours;j++){
+      const key=`${moisCle}-${String(j).padStart(2,'0')}`;
+      const mots=statsJours[key]||0;
+      // Utiliser une échelle logarithmique pour mieux distinguer les journées
+      // Échelle absolue à 5 niveaux — indépendante du max
+      // 0=rien, 1=1-299, 2=300-699, 3=700-1499, 4=1500+
+      const niveau = mots === 0 ? 0
+        : mots < 300  ? 1
+        : mots < 700  ? 2
+        : mots < 1500 ? 3
+        : 4;
+      cellules.push(`<div class="graph-cell" style="background:${niveaux[niveau]}" title="${key} : ${mots?fmt(mots)+' mots':'rien'}"></div>`);
+    }
+
+    // Total du mois = stats projets + stats manuelles (sans double-compter)
+    const totalProjets = Array.from({length: nbJours}, (_,j) => {
+      return statsJours[`${moisCle}-${String(j+1).padStart(2,'0')}`] || 0;
+    }).reduce((a,b) => a+b, 0);
+
+    // Utiliser stats manuelles seulement si le mois n'a pas de données projets
+    const totalManuel = (graphStatsManuelles[moisCle] || graphStatsManuelles[moisCle+'-01'] || 0);
+    const totalMois = totalProjets > 0 ? totalProjets : totalManuel;
+
+    const totalLabel = totalMois > 0
+      ? `<span style="font-size:11px;color:var(--ink4);white-space:nowrap;min-width:52px;text-align:right">${fmt(totalMois)}</span>`
+      : `<span style="min-width:52px"></span>`;
+    blocs.push(`<div class="graph-mois"><div class="graph-mois-label">${moisLabels[m]}</div><div class="graph-ligne">${cellules.join('')}</div>${totalLabel}</div>`);
+  }
+  return nav + blocs.join('');
+}
+
+function changerAnneeGraphe(delta){
+  const min = anneeMin(graphStatsJours);
+  const max = new Date().getFullYear();
+  const nouvelle = graphAnnee + delta;
+  if(nouvelle < min || nouvelle > max) return;
+  graphAnnee = nouvelle;
+  document.getElementById('graphique-inner').innerHTML =
+    renderGraphique(graphStatsJours, graphAnnee, graphStatsManuelles) +
+    legendeGraphique();
+}
+
+function legendeGraphique(){
+  return `<div style="margin-top:12px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink4)">
+    <span>Moins</span>
+    ${['#e8e0d0','#d4b896','#b8915c','#8b6914','#5c4010'].map(c=>`<div style="width:12px;height:12px;border-radius:2px;background:${c}"></div>`).join('')}
+    <span>Plus</span>
+  </div>`;
+}
+
+async function chargerProfil(){
+  const params=new URLSearchParams(window.location.search);
+  const userId=params.get('u');
+  const slug=params.get('a');
+  const page=document.getElementById('page');
+
+  if(!userId&&!slug){page.innerHTML='<div class="etat">Aucun profil spécifié.</div>';return;}
+
+  let data,error;
+  if(slug){
+    ({data,error}=await sb.from('profils').select('*').eq('slug',slug).maybeSingle());
+  } else {
+    ({data,error}=await sb.from('profils').select('*').eq('user_id',userId).maybeSingle());
+  }
+  if(error||!data){page.innerHTML='<div class="etat">Profil introuvable.</div>';return;}
+
+  document.title=(data.pseudo||'Auteur·e')+" — L'Encrier";
+
+  const s=data.stats||{};
+  const statsManuelles=data.stats_manuelles||{};
+
+  // Charger les vraies stats depuis stats_ecriture
+  const { data: statsRows } = await sb.from('stats_ecriture')
+    .select('date, mots')
+    .eq('user_id', data.user_id);
+
+  const statsJours = {};
+  (statsRows||[]).forEach(r => {
+    if(r.date && typeof r.mots === 'number')
+      statsJours[r.date] = (statsJours[r.date]||0) + r.mots;
+  });
+
+  // Fusionner stats_manuelles dans statsJours (heatmap uniquement)
+  Object.entries(statsManuelles).forEach(([k, v]) => {
+    if(typeof v !== 'number') return;
+    if(k.length === 10) {
+      if(!statsJours[k]) statsJours[k] = v;
+    } else if(k.length === 7) {
+      const moisKey = k + '-01';
+      const aMoisDonnees = Object.keys(statsJours).some(d => d.startsWith(k));
+      if(!aMoisDonnees) statsJours[moisKey] = v;
+    }
+  });
+
+  const annee = new Date().getFullYear().toString();
+  const moisCourant=new Date().toISOString().slice(0,7);
+
+  // totalMots = somme de tous les jours de l'année courante
+  const totalMots = Object.entries(statsJours)
+    .filter(([k]) => k.startsWith(annee))
+    .reduce((s,[,v])=>s+(typeof v==='number'?v:0), 0);
+  const streak=s.streak||0;
+  const objectif=s.objectifEnCours||null;
+  const projets=s.projetsPublics||[];
+
+  const motsMois=Object.entries(statsJours).filter(([k])=>k.startsWith(moisCourant)).reduce((s,[,v])=>s+(typeof v==='number'?v:0),0);
+
+  const avatarEl=data.avatar
+    ?`<img class="avatar" src="${data.avatar}" alt="">`
+    :`<div class="avatar">✍</div>`;
+
+  const liensEl=[
+    data.site?`<a class="lien" href="${data.site}" target="_blank">🌐 Site web</a>`:'',
+    ...(data.reseaux||'').split('\n').map(l=>l.trim()).filter(l=>l.startsWith('http'))
+      .map(l=>`<a class="lien" href="${l}" target="_blank">${icone(l)} ${labelURL(l)}</a>`)
+  ].join('');
+
+  let objectifEl='';
+  if(objectif&&objectif.objectif){
+    const pct=Math.min(100,Math.round(objectif.mots/objectif.objectif*100));
+    const finStr=objectif.fin?' · échéance '+new Date(objectif.fin).toLocaleDateString('fr-CA'):'';
+    objectifEl=`<div class="objectif-bloc">
+      <div class="bloc-titre">Projet en cours</div>
+      <div class="objectif-nom">${objectif.titre}</div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
+      <div class="prog-meta">
+        <span>${fmt(objectif.mots)} mots</span>
+        <span style="color:var(--accent);font-weight:600">${pct}%</span>
+        <span>${fmt(objectif.objectif)} objectif${finStr}</span>
+      </div>
+    </div>`;
+  }
+
+  let projetsEl='';
+  const projetsActifs=projets.filter(p=>!p.archive);
+  const projetsArchives=projets.filter(p=>p.archive);
+
+  const carteProjet = p => {
+    const couvEl=p.couverture?`<img class="projet-couv" src="${p.couverture}" alt="">`:`<div class="projet-couv">📖</div>`;
+    const meta=[p.genre,p.annee].filter(Boolean).join(' · ');
+    const ruban=p.archive?`<div style="position:absolute;top:12px;right:-8px;background:#4a8050;color:#fff;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;padding:3px 10px;border-radius:2px 0 0 2px;box-shadow:-1px 1px 3px rgba(0,0,0,.2);">TERMINÉ</div>`:'';
+    return`<div class="projet-carte" style="position:relative;overflow:visible">${couvEl}${ruban}<div class="projet-body">
+      <div class="projet-nom">${p.nom}</div>
+      ${meta?`<div class="projet-meta">${meta}</div>`:''}
+      <div class="projet-mots">${fmt(p.mots)} mots</div>
+      ${p.synopsis?`<div class="projet-syn">${p.synopsis}</div>`:''}
+    </div></div>`;
+  };
+
+  if(projetsActifs.length){
+    projetsEl+=`<div class="bloc-titre" style="margin-bottom:14px">Projets</div><div class="projets-liste">${projetsActifs.map(carteProjet).join('')}</div>`;
+  }
+  if(projetsArchives.length){
+    projetsEl+=`<div class="bloc-titre" style="margin-bottom:14px;margin-top:28px;opacity:.7">Projets terminés</div><div class="projets-liste" style="opacity:.8">${projetsArchives.map(carteProjet).join('')}</div>`;
+  }
+
+  const streakColor=streak>=7?'var(--gold)':'var(--accent)';
+  const streakMsg=streak>=30?'Incroyable !':streak>=7?'En feu !':streak>=3?'Bonne lancée !':'Continuez !';
+
+  page.innerHTML=`
+    <div class="carte-id">
+      ${avatarEl}
+      <div class="id-infos">
+        <div class="pseudo">${data.pseudo||'Auteur·e'}</div>
+        ${data.genres?`<div class="genres">${data.genres}</div>`:''}
+        ${data.bio?`<div class="bio">${data.bio}</div>`:''}
+        ${liensEl?`<div class="liens">${liensEl}</div>`:''}
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-bloc">
+        <div class="stat-val">${fmt(totalMots)}</div>
+        <div class="stat-label">mots en ${annee}</div>
+      </div>
+      <div class="stat-bloc">
+        <div class="stat-val">${fmt(motsMois)}</div>
+        <div class="stat-label">mots ce mois</div>
+        <div class="stat-sub">${new Date().toLocaleDateString('fr-CA',{month:'long',year:'numeric'})}</div>
+      </div>
+      <div class="stat-bloc">
+        <div class="stat-val" style="color:${streakColor}">${streak} 🔥</div>
+        <div class="stat-label">jours de suite</div>
+        <div class="stat-sub">${streakMsg}</div>
+      </div>
+    </div>
+    ${objectifEl}
+    <div class="graphique-bloc">
+      <div class="bloc-titre">Activité d'écriture</div>
+      <div id="graphique-inner">${renderGraphique(statsJours, graphAnnee, data.stats_manuelles||{}) + legendeGraphique()}</div>
+    </div>
+    ${projetsEl}
+  `;
+}
+chargerProfil();
+</script>
+<script src="../js/theme.js"></script>
+</body>
+</html>

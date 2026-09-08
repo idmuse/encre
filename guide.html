@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide — l'Encrier</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --ink2: #3d3028;
+    --ink3: #6b5a4e;
+    --ink4: #9c8878;
+    --paper: #faf7f2;
+    --paper2: #f2ede4;
+    --paper3: #e8e0d4;
+    --accent: #8b3a2a;
+    --accent2: #c4622d;
+    --gold: #b8892a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Crimson Pro', serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.7;
+    font-size: 18px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    padding: 48px 40px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 60% 0%, rgba(196,98,45,.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 13px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink4);
+    margin-bottom: 18px;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 400;
+    color: #f0e8dc;
+    letter-spacing: -.01em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+
+  header h1 em {
+    color: var(--accent2);
+    font-style: italic;
+  }
+
+  header p {
+    font-size: 17px;
+    color: var(--ink4);
+    font-style: italic;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ── NAV ── */
+  nav {
+    background: var(--paper2);
+    border-bottom: 1px solid var(--paper3);
+    padding: 0 40px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  nav a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    text-decoration: none;
+    padding: 14px 16px;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  nav a:hover {
+    color: var(--ink);
+    border-bottom-color: var(--paper3);
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 64px 40px 100px;
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    margin-bottom: 72px;
+    scroll-margin-top: 80px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 12px;
+  }
+
+  section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 20px;
+    line-height: 1.2;
+  }
+
+  section p {
+    color: var(--ink2);
+    margin-bottom: 16px;
+  }
+
+  section p:last-child { margin-bottom: 0; }
+
+  /* ── INTRO BLOCK ── */
+  .intro-block {
+    background: var(--ink);
+    border-radius: 12px;
+    padding: 36px 40px;
+    margin-bottom: 72px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .intro-block::before {
+    content: '✒';
+    position: absolute;
+    right: 32px;
+    top: 24px;
+    font-size: 64px;
+    opacity: .06;
+    line-height: 1;
+  }
+
+  .intro-block p {
+    color: #c8bfb0;
+    font-size: 19px;
+    font-style: italic;
+    line-height: 1.65;
+    max-width: 600px;
+  }
+
+  .intro-block strong {
+    color: #f0e8dc;
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* ── FEATURE GRID ── */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .feature-card {
+    background: var(--paper2);
+    border: 1px solid var(--paper3);
+    border-radius: 10px;
+    padding: 22px 24px;
+    transition: border-color .15s;
+  }
+
+  .feature-card:hover {
+    border-color: var(--ink4);
+  }
+
+  .feature-card .icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .feature-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .feature-card p {
+    font-size: 15px;
+    color: var(--ink3);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* ── STEPS ── */
+  .steps {
+    counter-reset: step;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 24px;
+    border-left: 2px solid var(--paper3);
+    padding-left: 32px;
+    margin-left: 12px;
+  }
+
+  .step {
+    position: relative;
+    padding-bottom: 32px;
+  }
+
+  .step:last-child { padding-bottom: 0; }
+
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: -44px;
+    top: 2px;
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+  }
+
+  .step h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .step p {
+    font-size: 16px;
+    color: var(--ink3);
+    margin: 0;
+  }
+
+  /* ── TIP BOX ── */
+  .tip {
+    background: var(--paper2);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 24px 0;
+    font-size: 16px;
+    color: var(--ink2);
+    font-style: italic;
+  }
+
+  .tip strong {
+    font-style: normal;
+    color: var(--gold);
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* ── KEY SHORTCUT ── */
+  kbd {
+    background: var(--ink);
+    color: #e8d9c0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* ── COLLAB BLOCK ── */
+  .collab-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .collab-card {
+    border: 1px solid var(--paper3);
+    border-radius: 10px;
+    padding: 22px 24px;
+    background: var(--paper2);
+  }
+
+  .collab-card .auteur {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 8px;
+  }
+
+  .collab-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: var(--ink);
+  }
+
+  .collab-card p {
+    font-size: 15px;
+    color: var(--ink3);
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--paper3);
+    margin: 64px 0;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--ink2);
+    text-align: center;
+    padding: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    color: var(--ink4);
+  }
+
+  footer em {
+    color: var(--accent2);
+    font-style: italic;
+    font-family: 'Crimson Pro', serif;
+    font-size: 14px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header { padding: 36px 24px 32px; }
+    nav { padding: 0 16px; }
+    main { padding: 40px 24px 72px; }
+    .intro-block { padding: 24px; }
+    .collab-block { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">l'Encrier</div>
+  <h1>Guide d'utilisation</h1>
+  <p>Tout ce qu'il faut savoir pour écrire, organiser et partager vos projets</p>
+</header>
+
+<nav>
+  <a href="#debut">Démarrer</a>
+  <a href="#editeur">Éditeur</a>
+  <a href="#organisation">Organisation</a>
+  <a href="#stats">Statistiques</a>
+  <a href="#collab">Collaboration</a>
+  <a href="#lecture">Mode lecture</a>
+  <a href="#export">Export</a>
+</nav>
+
+<main>
+
+  <div class="intro-block">
+    <p>L'Encrier est un <strong>outil d'écriture en ligne</strong> conçu pour les auteur·e·s de fiction. Il combine un éditeur de texte, un suivi de progression, des outils de planification narrative et un mode de collaboration à deux voix — le tout dans une interface pensée pour ne pas distraire de l'essentiel : écrire.</p>
+  </div>
+
+  <!-- ── DÉMARRER ── -->
+  <section id="debut">
+    <div class="section-label">01 — Premiers pas</div>
+    <h2>Créer un compte et démarrer</h2>
+    <p>L'Encrier fonctionne entièrement dans votre navigateur. Vos projets sont sauvegardés dans le nuage et accessibles depuis n'importe quel appareil.</p>
+
+    <div class="steps">
+      <div class="step">
+        <h3>Créer un compte</h3>
+        <p>Entrez votre courriel et un mot de passe sur la page d'accueil. Un compte suffit pour tous vos projets.</p>
+      </div>
+      <div class="step">
+        <h3>Créer votre premier projet</h3>
+        <p>Cliquez sur <strong>Nouveau projet</strong> depuis le tableau de bord. Donnez-lui un titre, un genre et une année. Vous pourrez modifier tout ça plus tard.</p>
+      </div>
+      <div class="step">
+        <h3>Ajouter des chapitres</h3>
+        <p>Dans la barre latérale gauche, cliquez sur le <strong>+</strong> pour ajouter un chapitre. Vous pouvez en créer autant que vous voulez et les réorganiser librement.</p>
+      </div>
+      <div class="step">
+        <h3>Écrire</h3>
+        <p>Cliquez sur un chapitre dans la liste pour l'ouvrir dans l'éditeur. C'est parti !</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ÉDITEUR ── -->
+  <section id="editeur">
+    <div class="section-label">02 — Éditeur</div>
+    <h2>L'éditeur de texte</h2>
+    <p>L'éditeur est volontairement épuré — la mise en forme se fait via une barre d'outils discrète qui apparaît au-dessus du texte. Le focus reste sur les mots.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="icon">G  <em>I</em>  <u>S</u></span>
+        <h3>Mise en forme</h3>
+        <p>Gras, italique, souligné. Sélectionnez du texte pour faire apparaître la barre de formatage.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">≡  ←  →</span>
+        <h3>Alignement & indentation</h3>
+        <p>Centrez un titre, justifiez un paragraphe, ou indentez une citation.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">💬</span>
+        <h3>Commentaires inline</h3>
+        <p>Ajoutez des notes à vous-même directement dans le texte. Visibles seulement en mode édition.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">✓</span>
+        <h3>Autocorrection</h3>
+        <p>L'Encrier corrige automatiquement vos fautes de frappe habituelles. Personnalisable dans les réglages.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">LT</span>
+        <h3>LanguageTool</h3>
+        <p>Vérification grammaticale et orthographique intégrée. Les suggestions apparaissent dans la barre latérale droite.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">☁</span>
+        <h3>Sauvegarde automatique</h3>
+        <p>Vos textes sont sauvegardés en continu dans le nuage. Un indicateur en haut de page confirme l'état.</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>Astuce</strong>
+      Le compteur de mots en bas à gauche affiche le nombre de mots du chapitre en cours. Le total du projet est visible dans la barre latérale.
+    </div>
+  </section>
+
+  <!-- ── ORGANISATION ── -->
+  <section id="organisation">
+    <div class="section-label">03 — Organisation</div>
+    <h2>Organiser votre projet</h2>
+    <p>L'Encrier propose plusieurs outils pour structurer votre récit au-delà du simple texte.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="icon">📋</span>
+        <h3>Plan</h3>
+        <p>Visualisez la structure de votre roman chapitre par chapitre. Ajoutez des résumés et des notes de structure.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🃏</span>
+        <h3>Fiches personnages</h3>
+        <p>Créez une fiche pour chaque personnage : nom, description, traits, relations. Accessible depuis le panneau de droite.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">📅</span>
+        <h3>Timeline</h3>
+        <p>Visualisez la chronologie de votre récit. Idéal pour les histoires avec plusieurs fils narratifs.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">📓</span>
+        <h3>Carnet d'idées</h3>
+        <p>Un espace libre pour noter les idées qui viennent en cours d'écriture, sans interrompre votre flux.</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>Niveaux de chapitres</strong>
+      Les chapitres peuvent être organisés en sections et sous-sections. Utilisez le niveau 1 pour les grandes parties, niveau 2 pour les chapitres, niveau 3 pour les scènes.
+    </div>
+  </section>
+
+  <!-- ── STATISTIQUES ── -->
+  <section id="stats">
+    <div class="section-label">04 — Progression</div>
+    <h2>Suivre sa progression</h2>
+    <p>L'Encrier enregistre automatiquement le nombre de mots écrits chaque jour, par projet. Ces données alimentent votre tableau de bord personnel.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="icon">📊</span>
+        <h3>Tableau de bord</h3>
+        <p>Vue d'ensemble de votre activité : mots aujourd'hui, streak de jours consécutifs, total du mois.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🏅</span>
+        <h3>Badges</h3>
+        <p>Débloquez des badges au fil de votre progression : premier mot, 7 jours consécutifs, 10 000 mots ce mois…</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🗓</span>
+        <h3>Calendrier mensuel</h3>
+        <p>Exportez votre calendrier d'écriture du mois — une image à partager ou à garder comme souvenir.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🎯</span>
+        <h3>Objectif de projet</h3>
+        <p>Fixez un nombre de mots cible et une date limite. Une barre de progression s'affiche dans le tableau de bord.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── COLLABORATION ── -->
+  <section id="collab">
+    <div class="section-label">05 — Écriture à deux</div>
+    <h2>Mode collaboration</h2>
+    <p>L'Encrier permet d'écrire à deux sur le même projet, avec des chapitres assignés à chaque auteur·e. Idéal pour les romans en alternance de points de vue.</p>
+
+    <div class="collab-block">
+      <div class="collab-card">
+        <div class="auteur">Auteur·e A</div>
+        <h3>Ses chapitres</h3>
+        <p>Chaque auteur·e ne peut modifier que ses propres chapitres. Les chapitres de l'autre sont en lecture seule.</p>
+      </div>
+      <div class="collab-card">
+        <div class="auteur">Auteur·e B</div>
+        <h3>Ses chapitres</h3>
+        <p>Le premier à écrire dans un chapitre non assigné en devient automatiquement l'auteur·e.</p>
+      </div>
+    </div>
+
+    <div class="steps" style="margin-top: 32px;">
+      <div class="step">
+        <h3>Inviter un·e collaborateur·rice</h3>
+        <p>Depuis le tableau de bord, ouvrez le projet et cliquez sur <strong>Collaborer</strong>. Entrez l'adresse courriel de votre co-auteur·e.</p>
+      </div>
+      <div class="step">
+        <h3>Accepter l'invitation</h3>
+        <p>Le ou la collaborateur·rice reçoit un courriel avec un lien d'accès. Une fois accepté, le projet apparaît dans son tableau de bord.</p>
+      </div>
+      <div class="step">
+        <h3>Écrire ensemble</h3>
+        <p>Les modifications sont synchronisées en temps réel. Un verrou apparaît sur un chapitre quand l'autre personne est en train de l'écrire.</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>Stats séparées</strong>
+      En mode collaboration, les statistiques de mots sont calculées séparément pour chaque auteur·e — vous voyez seulement vos propres mots dans votre tableau de bord.
+    </div>
+  </section>
+
+  <!-- ── MODE LECTURE ── -->
+  <section id="lecture">
+    <div class="section-label">06 — Bêta-lecture</div>
+    <h2>Partager pour lecture</h2>
+    <p>Chaque projet peut être partagé en mode lecture avec vos bêta-lecteur·rice·s — aucun compte requis pour lire.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="icon">🔗</span>
+        <h3>Lien de partage</h3>
+        <p>Générez un lien unique pour votre projet. Partagez-le avec qui vous voulez — ils accèdent directement à la lecture.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">💬</span>
+        <h3>Commentaires</h3>
+        <p>Vos lecteur·rice·s peuvent laisser des commentaires sur un paragraphe ou sur une sélection de texte précise.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">📖</span>
+        <h3>Navigation par chapitres</h3>
+        <p>Table des matières dans la barre latérale. La mise en page est optimisée pour la lecture longue.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">🔒</span>
+        <h3>Lecture seule</h3>
+        <p>Les lecteur·rice·s ne peuvent pas modifier le texte. Seuls les commentaires leur sont accessibles.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── EXPORT ── -->
+  <section id="export">
+    <div class="section-label">07 — Export</div>
+    <h2>Exporter votre manuscrit</h2>
+    <p>L'Encrier permet d'exporter votre travail dans plusieurs formats à partir de la barre d'outils en haut de l'éditeur.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <span class="icon">📄</span>
+        <h3>→ .docx</h3>
+        <p>Export Word formaté, prêt pour l'envoi à un·e éditeur·rice ou pour la mise en page finale.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">📕</span>
+        <h3>→ PDF</h3>
+        <p>Export PDF au format KDP 6×9 pouces, directement compatible avec l'autoédition sur Amazon.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">← .docx</span>
+        <h3>Importer un .docx</h3>
+        <p>Importez un manuscrit Word existant pour continuer à travailler dessus dans l'Encrier.</p>
+      </div>
+      <div class="feature-card">
+        <span class="icon">💾</span>
+        <h3>Sauvegarde locale</h3>
+        <p>Téléchargez une copie locale de votre projet en tout temps via le bouton <strong>↓ Local</strong>.</p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>Sauvegarde automatique</strong>
+      Vos textes sont sauvegardés automatiquement dans le nuage à chaque modification. La sauvegarde locale est un filet de sécurité supplémentaire.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <em>l'Encrier</em> &nbsp;·&nbsp; Outil d'écriture pour auteur·e·s
+</footer>
+
+</body>
+</html>

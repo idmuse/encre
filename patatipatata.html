@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Encre</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0d0b; --bg2:#1a1610; --bg3:#252018;
+  --ink:#e8e0d0; --ink2:#a09080; --ink3:#6b5a4e;
+  --accent:#c4922a; --red:#c44a2a; --green:#4a8050; --blue:#4a6080;
+  --border:#2a2418;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--ink);font-family:'Crimson Pro',serif;min-height:100vh;}
+
+/* Auth */
+#auth-wall{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+#auth-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:40px;width:min(380px,92vw);text-align:center;}
+#auth-box h1{font-family:'Crimson Pro',serif;font-size:28px;font-style:italic;color:var(--accent);margin-bottom:8px;}
+#auth-box p{font-size:14px;color:var(--ink2);margin-bottom:24px;}
+#auth-box input{width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:'Crimson Pro',serif;font-size:15px;margin-bottom:10px;outline:none;}
+#auth-box input:focus{border-color:var(--accent);}
+#auth-btn{width:100%;padding:10px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-family:'Crimson Pro',serif;font-size:16px;cursor:pointer;}
+#auth-btn:hover{background:#d4a030;}
+#auth-error{color:var(--red);font-size:13px;margin-top:10px;min-height:18px;}
+
+/* App */
+#app{display:none;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-logo{font-family:'Crimson Pro',serif;font-style:italic;font-size:22px;color:var(--accent);}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--ink2);}
+.topbar-right a{color:var(--ink2);text-decoration:none;font-size:13px;}
+.topbar-right a:hover{color:var(--ink);}
+
+.page{max-width:1100px;margin:0 auto;padding:32px 24px;}
+
+/* Stats grandes */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:32px;}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;}
+.kpi-val{font-family:'JetBrains Mono',monospace;font-size:28px;color:var(--accent);font-weight:500;line-height:1;}
+.kpi-label{font-size:13px;color:var(--ink2);margin-top:6px;font-style:italic;}
+.kpi-sub{font-size:11px;color:var(--ink3);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+
+/* Section */
+.section{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:24px;overflow:hidden;}
+.section-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.section-title{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);}
+
+/* Table usagers */
+table{width:100%;border-collapse:collapse;}
+th{padding:10px 16px;text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--border);}
+td{padding:12px 16px;font-size:14px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.badge-active{background:rgba(74,128,80,.2);color:#6ab87a;}
+.badge-inactive{background:rgba(107,90,78,.15);color:var(--ink3);}
+
+/* Barre de poids */
+.weight-bar{height:6px;background:var(--bg3);border-radius:3px;margin-top:4px;overflow:hidden;}
+.weight-fill{height:100%;background:linear-gradient(90deg,var(--accent),#e0a030);border-radius:3px;transition:width .6s ease;}
+
+.loading{padding:32px;text-align:center;color:var(--ink3);font-style:italic;font-size:15px;}
+
+/* Refresh btn */
+.refresh-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;color:var(--ink2);font-size:12px;cursor:pointer;font-family:'Crimson Pro',serif;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- Mur d'auth -->
+<div id="auth-wall">
+  <div id="auth-box">
+    <h1>encre</h1>
+    <p>Panneau d'administration</p>
+    <input type="email" id="login-email" placeholder="votre@courriel.com" autocomplete="email">
+    <input type="password" id="login-pwd" placeholder="••••••••" autocomplete="current-password">
+    <button id="auth-btn" onclick="seConnecter()">Entrer</button>
+    <div id="auth-error"></div>
+  </div>
+</div>
+
+<!-- App admin -->
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-logo">✒ encre — admin</span>
+    <div class="topbar-right">
+      <span id="admin-email"></span>
+      <a href="index.html">← Dashboard</a>
+      <a href="#" onclick="seDeconnecter()">Déconnexion</a>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="loading">Chargement…</div>
+    </div>
+    <div class="section" id="section-usagers">
+      <div class="section-head">
+        <span class="section-title">Usagers</span>
+        <button class="refresh-btn" onclick="chargerDonnees()">↻ Actualiser</button>
+      </div>
+      <div id="table-usagers"><div class="loading">Chargement…</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://derxiavgbnkntopuavdz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlcnhpYXZnYm5rbnRvcHVhdmR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNjEwMzQsImV4cCI6MjA4OTczNzAzNH0.H5c6AO0Cs-fMKxYoO4Gm3IUUgSQ6OpdasKwOyfv7SHY';
+const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlcnhpYXZnYm5rbnRvcHVhdmR6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE2MTAzNCwiZXhwIjoyMDg5NzM3MDM0fQ.57Og__tmbRWsvlmrBsknva1r4GVvq-AS1tRWzT7GRK0';
+const ADMIN_ID = '8bfd194f-f4b3-4cec-95e7-2ba0c569f204';
+
+const sb      = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sbAdmin = supabase.createClient(SUPABASE_URL, SERVICE_KEY);
+let sbUser = null;
+
+function fmt(n){ return Number(n||0).toLocaleString('fr-FR'); }
+function fmtDate(d){ return d ? new Date(d).toLocaleDateString('fr-CA') : '—'; }
+function fmtSize(bytes){ 
+  if(bytes < 1024) return bytes + ' o';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' Ko';
+  return (bytes/1024/1024).toFixed(2) + ' Mo';
+}
+
+async function seConnecter(){
+  const email = document.getElementById('login-email').value;
+  const pwd   = document.getElementById('login-pwd').value;
+  const err   = document.getElementById('auth-error');
+  err.textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pwd });
+  if(error){ err.textContent = error.message; return; }
+  sbUser = data.user;
+  if(sbUser.id !== ADMIN_ID){
+    err.textContent = 'Accès refusé.';
+    await sb.auth.signOut();
+    sbUser = null;
+    return;
+  }
+  afficherApp();
+}
+
+async function seDeconnecter(){
+  await sb.auth.signOut();
+  location.reload();
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !document.getElementById('app').style.display.includes('block')){
+    seConnecter();
+  }
+});
+
+async function afficherApp(){
+  document.getElementById('auth-wall').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('admin-email').textContent = sbUser.email;
+  await chargerDonnees();
+}
+
+async function chargerDonnees(){
+  document.getElementById('kpi-grid').innerHTML = '<div class="loading">Chargement…</div>';
+  document.getElementById('table-usagers').innerHTML = '<div class="loading">Chargement…</div>';
+
+  // Charger les emails via l'API admin
+  const usersRes = await sbAdmin.auth.admin.listUsers({ perPage: 1000 });
+  const emailMap = {};
+  (usersRes.data?.users||[]).forEach(u => { emailMap[u.id] = u.email; });
+
+  // Charger tout en parallèle
+  const [projetsRes, profilsRes, collabsRes, chapitresRes] = await Promise.all([
+    sb.from('projets').select('id,user_id,nom,mis_a_jour,contenu'),
+    sb.from('profils').select('user_id,pseudo,genres,mis_a_jour,stats'),
+    sb.from('collaborateurs').select('projet_id,user_id,email,invite_par'),
+    sb.from('chapitres').select('id,projet_id,mots,contenu'),
+  ]);
+
+  const projets   = projetsRes.data  || [];
+  const profils   = profilsRes.data  || [];
+  const collabs   = collabsRes.data  || [];
+  const chapitres = chapitresRes.data || [];
+
+  // Map user_id → profil
+  const profilMap = {};
+  profils.forEach(p => { profilMap[p.user_id] = p; });
+
+  // Initialiser tous les usagers depuis les profils (même sans projet)
+  const usagers = {};
+  profils.forEach(p => {
+    if(!usagers[p.user_id]) usagers[p.user_id] = { projets:[], totalMots:0, poids:0, derniereActivite: p.mis_a_jour, projetsCollab:0 };
+  });
+
+  // Ajouter aussi les usagers depuis auth (emailMap) même sans profil
+  Object.keys(emailMap).forEach(uid => {
+    if(!usagers[uid]) usagers[uid] = { projets:[], totalMots:0, poids:0, derniereActivite: null, projetsCollab:0 };
+  });
+
+  // Compter les projets en collaboration
+  collabs.forEach(c => {
+    const uid = c.user_id;
+    if(uid && usagers[uid]) usagers[uid].projetsCollab++;
+  });
+
+  // Regrouper par user_id — créer l'usager s'il n'existe pas encore
+  projets.forEach(p => {
+    if(!usagers[p.user_id]) usagers[p.user_id] = { projets:[], totalMots:0, poids:0, derniereActivite: null, projetsCollab:0 };
+    const u = usagers[p.user_id];
+    u.projets.push(p);
+
+    // Mots : prendre le max entre table chapitres et métadonnées
+    const chapsProjet = chapitres.filter(c => c.projet_id === p.id);
+    const motsChaps   = chapsProjet.reduce((s,c) => s+(c.mots||0), 0);
+    const motsMeta    = (p.contenu?.chapitres||[]).reduce((s,c)=>s+(c.mots||0),0);
+    u.totalMots += Math.max(motsChaps, motsMeta);
+
+    // Poids : JSON du contenu + chapitres séparés
+    const poidsProjet = new TextEncoder().encode(JSON.stringify(p.contenu||{})).length;
+    const poidsChaps  = chapsProjet.reduce((s,c)=>s+new TextEncoder().encode(c.contenu||'').length,0);
+    // Si les chapitres sont dans les métadonnées, les compter aussi
+    const poidsChapsMeta = (p.contenu?.chapitres||[]).reduce((s,c)=>s+new TextEncoder().encode(c.contenu||'').length,0);
+    u.poids += poidsProjet + Math.max(poidsChaps, poidsChapsMeta);
+
+
+
+    if(!u.derniereActivite || new Date(p.mis_a_jour) > new Date(u.derniereActivite))
+      u.derniereActivite = p.mis_a_jour;
+  });
+
+  // Stats globales
+  const nbUsagers   = Object.keys(usagers).length;
+  const nbProjets   = projets.length;
+  const totalMots   = Object.values(usagers).reduce((s,u)=>s+u.totalMots,0);
+  const totalPoids  = Object.values(usagers).reduce((s,u)=>s+u.poids,0);
+  const maxPoids    = Math.max(...Object.values(usagers).map(u=>u.poids), 1);
+
+  // Usagers actifs ce mois
+  const moisCourant = new Date().toISOString().slice(0,7);
+  const actifsThisMois = Object.values(usagers).filter(u =>
+    u.derniereActivite?.startsWith(moisCourant)
+  ).length;
+
+  // ── KPIs ──────────────────────────────────────────────────
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi"><div class="kpi-val">${nbUsagers}</div><div class="kpi-label">auteur·es</div></div>
+    <div class="kpi"><div class="kpi-val">${actifsThisMois}</div><div class="kpi-label">actif·ves ce mois</div></div>
+    <div class="kpi"><div class="kpi-val">${nbProjets}</div><div class="kpi-label">projets</div></div>
+    <div class="kpi"><div class="kpi-val">${fmt(totalMots)}</div><div class="kpi-label">mots au total</div></div>
+    <div class="kpi"><div class="kpi-val">${fmtSize(totalPoids)}</div><div class="kpi-label">poids estimé</div><div class="kpi-sub">/ 500 Mo gratuits</div></div>
+    <div class="kpi"><div class="kpi-val">${collabs.length}</div><div class="kpi-label">collaborations</div></div>
+  `;
+
+  // ── Table usagers ──────────────────────────────────────────
+  const lignes = Object.entries(usagers).map(([uid, u]) => {
+    const profil = profilMap[uid];
+    const nom    = profil?.pseudo || uid.slice(0,8) + '…';
+    const genres = profil?.genres || '—';
+    const actif  = u.derniereActivite?.startsWith(moisCourant);
+    const poidsPct = Math.round(u.poids / maxPoids * 100);
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600">${nom}</div>
+        <div style="font-size:11px;color:var(--ink3);font-family:'JetBrains Mono',monospace">${emailMap[uid]||uid.slice(0,16)+'…'}</div>
+      </td>
+      <td style="font-style:italic;color:var(--ink2)">${genres}</td>
+      <td>
+        <span style="font-family:'JetBrains Mono',monospace">${u.projets.length}</span>
+        ${u.projetsCollab ? `<span style="font-size:11px;color:var(--ink3);margin-left:4px">(+${u.projetsCollab} collab)</span>` : ''}
+      </td>
+      <td><span style="font-family:'JetBrains Mono',monospace">${fmt(u.totalMots)}</span></td>
+      <td>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px">${fmtSize(u.poids)}</span>
+        <div class="weight-bar"><div class="weight-fill" style="width:${poidsPct}%"></div></div>
+      </td>
+      <td>${fmtDate(u.derniereActivite)}</td>
+      <td><span class="badge ${actif?'badge-active':'badge-inactive'}">${actif?'actif·ve':'inactif·ve'}</span></td>
+    </tr>`;
+  }).sort((a,b) => b.includes('badge-active') - a.includes('badge-active')).join('');
+
+  document.getElementById('table-usagers').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Auteur·e</th>
+          <th>Genre(s)</th>
+          <th>Projets</th>
+          <th>Mots</th>
+          <th>Poids BDD</th>
+          <th>Dernière activité</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>${lignes || '<tr><td colspan="7" style="text-align:center;color:var(--ink3);font-style:italic;padding:24px">Aucun usager</td></tr>'}</tbody>
+    </table>
+  `;
+}
+
+// Vérifier session existante
+sb.auth.getSession().then(({ data: { session }}) => {
+  if(session?.user){
+    sbUser = session.user;
+    if(sbUser.id === ADMIN_ID) afficherApp();
+  }
+});
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@ let P = {
   titre:'Mon Roman',
   auteur:'', sousTitre:'', genre:'', annee: new Date().getFullYear()+'', synopsis:'',
   chapitres:[{id:1,titre:'Chapitre I',contenu:'',mots:0}],
-  personnages:[], lieux:[], timeline:[], nid:2
+  personnages:[], lieux:[], timeline:[], recherches:[], nid:2
 };
 let chapI=0, ctxSel='', editId=null, photoTmp=null;
 
@@ -341,6 +341,19 @@ function edKey(e){
   if(e.key==='Enter' && !e.shiftKey){
     e.preventDefault();
     document.execCommand('insertParagraph');
+    // insertParagraph duplique le style du paragraphe quitté (ex: text-align:center
+    // d'un "* * *" centré) sur le nouveau paragraphe — on le repasse à l'alignement
+    // par défaut (justifié) pour que le texte suivant ne reste pas centré.
+    const selApresEntree=window.getSelection();
+    if(selApresEntree.rangeCount){
+      let node=selApresEntree.getRangeAt(0).startContainer;
+      if(node.nodeType===3) node=node.parentElement;
+      const bloc=node?.closest?.('#editor > p, #editor > div');
+      if(bloc && bloc.style.textAlign){
+        bloc.style.textAlign='';
+        if(!bloc.getAttribute('style')) bloc.removeAttribute('style');
+      }
+    }
     edChange(); return;
   }
 
@@ -353,6 +366,22 @@ function edKey(e){
     if(e.key==='Enter') document.execCommand('insertParagraph');
     const h=document.getElementById('ch');
     h.classList.add('on'); clearTimeout(h._t); h._t=setTimeout(()=>h.classList.remove('on'),1100);
+    edChange(); return;
+  }
+
+  // Apostrophe droite → apostrophe courbe (typo française)
+  if(e.key==="'"){
+    e.preventDefault();
+    n.textContent=t.slice(0,p)+'’'+t.slice(p);
+    setCaret(n,p+1);
+    edChange(); return;
+  }
+
+  // Trois points → points de suspension …
+  if(e.key==='.' && p>=2 && t.slice(p-2,p)==='..'){
+    e.preventDefault();
+    n.textContent=t.slice(0,p-2)+'…'+t.slice(p);
+    setCaret(n,p-1);
     edChange(); return;
   }
 
@@ -557,6 +586,7 @@ function loadChap(i){
   c._texteRef = (document.getElementById('editor').innerText || '').replace(/\s+/g, ' ').trim();
   c._dirty = false; // Chapitre vient d'être chargé — pas modifié
   updateWC(); renderSidebar(); ltLastText=''; ltSchedule();
+  if(accOuvert==='notesChap') renderAcc('notesChap');
 }
 
 function repairerContenu(){
@@ -715,12 +745,31 @@ function edChange(){
 }
 
 
+// ── Typographie française (nettoyage à l'export) ───────────
+// Filet de sécurité pour le texte collé/importé qui n'est pas passé par edKey() :
+// apostrophes courbes, points de suspension, espaces insécables avant ; : ! ? »
+function normaliserTypoTexte(s){
+  return s
+    .replace(/'/g, '’')
+    .replace(/\.{3,}/g, '…')
+    .replace(/[  ]([;:!?])/g, ' $1')
+    .replace(/[  ]»/g, ' »')
+    .replace(/« [  ]?/g, '« ');
+}
+function normaliserTypoNode(root){
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let n;
+  while((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(node => { node.textContent = normaliserTypoTexte(node.textContent); });
+}
+
 // ── AUTOCORRECTION ────────────────────────────────────────
 const CORRECTIONS_FIXES = {
   'poru':'pour','poru ':'pour ','avce':'avec','teh':'the',
   'pius':'puis','jsuis':'je suis','cest':'c\'est',
-  'jcois':'je crois','jai':'j\'ai','tas':'t\'as',
-  'ect':'etc','qque':'que','qqe':'quelque',
+  'jcois':'je crois','jai':'j\'ai',
+  'ect':'etc','qque':'quelque','qqe':'quelque',
   'tt':'tout','tjrs':'toujours','bcp':'beaucoup',
   'pcq':'parce que','pck':'parce que','dsl':'désolé',
   'nv':'nouveau','nvx':'nouveaux','ms':'mais',
@@ -1439,6 +1488,8 @@ function renderAcc(which){
   else if(which==='lieux') renderAccLieux(c);
   else if(which==='time') renderAccTime(c);
   else if(which==='liens') renderAccLiens(c);
+  else if(which==='notesChap') renderAccNotesChap(c);
+  else if(which==='recherches') renderAccRecherches(c);
   else renderAccNotes(c);
 }
 
@@ -1456,6 +1507,22 @@ function renderAccPerso(c){
       :`<div class="avatar">👤</div>`;
     el.innerHTML=av+`<div class="cb"><div class="cn">${p.nom}</div><div class="cs">${p.role||''}</div>${p.age?`<span class="ctag">${p.age}</span>`:''}</div>`;
     el.onclick=()=>openEdit('perso',p); wrap.appendChild(el);
+  });
+  c.appendChild(wrap);
+}
+
+function renderAccRecherches(c){
+  const wrap=document.createElement('div'); wrap.className='psec';
+  const hdr=document.createElement('div'); hdr.className='psec-t';
+  hdr.innerHTML=`Recherches <button class="icon-btn" onclick="openNew('recherche')" style="font-size:13px">＋</button>`;
+  wrap.appendChild(hdr);
+  const recherches=P.recherches||[];
+  if(!recherches.length){ wrap.innerHTML+=`<div style="font-size:13px;color:var(--ink4);font-style:italic;padding:6px 0">Aucune recherche. Notes de fond, sources, documentation — tout ce qui nourrit l'histoire sans y entrer directement.</div>`; }
+  recherches.forEach(r=>{
+    const el=document.createElement('div'); el.className='card';
+    const apercu=(r.notes||'').slice(0,80);
+    el.innerHTML=`<div class="avatar">🔎</div><div class="cb"><div class="cn">${esc(r.titre||'Sans titre')}</div><div class="cs">${esc(r.source||apercu)}</div></div>`;
+    el.onclick=()=>openEdit('recherche',r); wrap.appendChild(el);
   });
   c.appendChild(wrap);
 }
@@ -1563,6 +1630,27 @@ function renderAccNotes(c){
   ta.placeholder='Notes libres sur ce roman…';
   ta.value=P.notesLibres||'';
   ta.addEventListener('input',()=>{ P.notesLibres=ta.value; });
+  wrap.appendChild(ta);
+  c.appendChild(wrap);
+}
+
+function renderAccNotesChap(c){
+  const ch=P.chapitres[chapI];
+  const wrap=document.createElement('div');
+  wrap.style.cssText='padding:11px 13px 14px;';
+  const label=document.createElement('div');
+  label.style.cssText='font-size:11px;color:var(--ink4);font-family:"JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;';
+  label.textContent=ch?.titre||'Ce chapitre';
+  const ta=document.createElement('textarea');
+  ta.style.cssText='width:100%;background:var(--paper);border:1px solid var(--paper3);border-radius:4px;padding:8px 10px;font-family:"Crimson Pro",serif;font-size:14px;color:var(--ink);outline:none;resize:none;min-height:220px;line-height:1.65;';
+  ta.placeholder='Notes propres à ce chapitre — recherches, rappels, points à revoir…';
+  ta.value=ch?.notesChap||'';
+  ta.addEventListener('input',()=>{
+    if(!ch) return;
+    ch.notesChap=ta.value;
+    ch._dirty=true;
+  });
+  wrap.appendChild(label);
   wrap.appendChild(ta);
   c.appendChild(wrap);
 }
@@ -1798,6 +1886,7 @@ function openNew(type, prefill){
   if(type==='perso' && accOuvert!=='perso') accToggle('perso');
   else if(type==='lieu' && accOuvert!=='lieux') accToggle('lieux');
   else if(type==='tl' && accOuvert!=='time') accToggle('time');
+  else if(type==='recherche' && accOuvert!=='recherches') accToggle('recherches');
   showForm(type, {nom:type!=='tl'?(prefill||''):'', titre:prefill||''});
 }
 
@@ -1825,13 +1914,22 @@ function showForm(type, obj){
     <label class="fl">Nom</label><input class="fi" id="f1" value="${esc(obj.nom||'')}">
     <label class="fl">Rôle</label><input class="fi" id="f2" value="${esc(obj.role||'')}">
     <label class="fl">Âge</label><input class="fi" id="f3" value="${esc(obj.age||'')}">
-    <label class="fl">Notes</label><textarea class="fi fta" id="f4">${esc(obj.notes||'')}</textarea>`;
+    <label class="fl">Physique</label><textarea class="fi fta" id="f5" placeholder="Silhouette, visage, façon de se tenir, signes distinctifs…" style="min-height:70px">${esc(obj.physique||'')}</textarea>
+    <label class="fl">Personnalité</label><textarea class="fi fta" id="f6" placeholder="Caractère, qualités, défauts, manies, façon de parler…" style="min-height:70px">${esc(obj.personnalite||'')}</textarea>
+    <label class="fl">Histoire / passé</label><textarea class="fi fta" id="f7" placeholder="D'où vient-il·elle ? Ce qui l'a façonné·e…" style="min-height:70px">${esc(obj.histoire||'')}</textarea>
+    <label class="fl">Objectif / motivation</label><textarea class="fi fta" id="f8" placeholder="Que veut-il·elle ? Qu'est-ce qui le·la freine ?" style="min-height:70px">${esc(obj.objectif||'')}</textarea>
+    <label class="fl">Notes</label><textarea class="fi fta" id="f4" style="min-height:90px">${esc(obj.notes||'')}</textarea>`;
   } else if(type==='lieu'){
     h=`<h4>${editId?'Modifier':'Nouveau'} lieu</h4>
     <label class="fl">Nom</label><input class="fi" id="f1" value="${esc(obj.nom||'')}">
     <label class="fl">Type</label><input class="fi" id="f2" value="${esc(obj.type||'')}">
     <label class="fl">Époque</label><input class="fi" id="f3" value="${esc(obj.epoque||'')}">
     <label class="fl">Notes</label><textarea class="fi fta" id="f4">${esc(obj.notes||'')}</textarea>`;
+  } else if(type==='recherche'){
+    h=`<h4>${editId?'Modifier':'Nouvelle'} recherche</h4>
+    <label class="fl">Titre</label><input class="fi" id="f1" placeholder="ex: Procédure d'enquête, Argot des années 20…" value="${esc(obj.titre||obj.nom||'')}">
+    <label class="fl">Source</label><input class="fi" id="f2" placeholder="Livre, site, personne ressource…" value="${esc(obj.source||'')}">
+    <label class="fl">Contenu</label><textarea class="fi fta" id="f4" style="min-height:180px">${esc(obj.notes||'')}</textarea>`;
   } else {
     h=`<h4>${editId?'Modifier':'Nouvel'} événement</h4>
     <label class="fl">Titre</label><input class="fi" id="f1" value="${esc(obj.titre||obj.nom||'')}">
@@ -1884,11 +1982,19 @@ function saveForm(type){
   const c3=(document.getElementById('f3')?.value||'').trim();
   const notes=(document.getElementById('f4')?.value||'').trim();
   if(type==='perso'){
-    if(editId){ const x=P.personnages.find(p=>p.id===editId); if(x){x.nom=nom;x.role=c2;x.age=c3;x.notes=notes;x.photo=photoTmp!==null?photoTmp:x.photo;} }
-    else P.personnages.push({id:P.nid++,nom,role:c2,age:c3,notes,photo:photoTmp});
+    const physique=(document.getElementById('f5')?.value||'').trim();
+    const personnalite=(document.getElementById('f6')?.value||'').trim();
+    const histoire=(document.getElementById('f7')?.value||'').trim();
+    const objectif=(document.getElementById('f8')?.value||'').trim();
+    if(editId){ const x=P.personnages.find(p=>p.id===editId); if(x){x.nom=nom;x.role=c2;x.age=c3;x.notes=notes;x.physique=physique;x.personnalite=personnalite;x.histoire=histoire;x.objectif=objectif;x.photo=photoTmp!==null?photoTmp:x.photo;} }
+    else P.personnages.push({id:P.nid++,nom,role:c2,age:c3,notes,physique,personnalite,histoire,objectif,photo:photoTmp});
   } else if(type==='lieu'){
     if(editId){ const x=P.lieux.find(l=>l.id===editId); if(x){x.nom=nom;x.type=c2;x.epoque=c3;x.notes=notes;} }
     else P.lieux.push({id:P.nid++,nom,type:c2,epoque:c3,notes});
+  } else if(type==='recherche'){
+    if(!P.recherches) P.recherches=[];
+    if(editId){ const x=P.recherches.find(r=>r.id===editId); if(x){x.titre=nom;x.source=c2;x.notes=notes;} }
+    else P.recherches.push({id:P.nid++,titre:nom,source:c2,notes});
   } else {
     if(editId){ const x=P.timeline.find(t=>t.id===editId); if(x){x.titre=nom;x.date=c2;x.persos=c3;x.notes=notes;} }
     else P.timeline.push({id:P.nid++,titre:nom,date:c2,persos:c3,notes,fait:false});
@@ -1900,6 +2006,7 @@ function delItem(type){
   if(!editId||!confirm('Supprimer ?')) return;
   if(type==='perso') P.personnages=P.personnages.filter(x=>x.id!==editId);
   else if(type==='lieu') P.lieux=P.lieux.filter(x=>x.id!==editId);
+  else if(type==='recherche') P.recherches=(P.recherches||[]).filter(x=>x.id!==editId);
   else P.timeline=P.timeline.filter(x=>x.id!==editId);
   editId=null; closeForm(); renderPanel();
 }
@@ -2203,7 +2310,7 @@ async function lireDocx(input){
 
 function nouveauProjet(){
   if(!confirm('Nouveau projet ? Sauvegardez d\'abord si besoin.')) return;
-  P={titre:'Nouveau Roman',auteur:'',sousTitre:'',genre:'',annee:new Date().getFullYear()+'',synopsis:'',chapitres:[{id:1,titre:'Chapitre I',contenu:'',mots:0}],personnages:[],lieux:[],timeline:[],nid:2,projet_cloud_id:null};
+  P={titre:'Nouveau Roman',auteur:'',sousTitre:'',genre:'',annee:new Date().getFullYear()+'',synopsis:'',chapitres:[{id:1,titre:'Chapitre I',contenu:'',mots:0}],personnages:[],lieux:[],timeline:[],recherches:[],nid:2,projet_cloud_id:null};
   document.getElementById('projet-nom').value=P.titre;
   document.getElementById('dashboard').classList.remove('on');
   fermerCarnetPage();
@@ -2289,7 +2396,7 @@ async function exportPdf(){
         doc.setFont('Times','normal'); doc.setFontSize(22);
         doc.text((ch.titre||'').toUpperCase(), W/2, H/3, {align:'center'});
         if(ch.contenu){
-          const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu;
+          const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);
           const st=tmp.innerText.trim();
           if(st && st.length<120){
             doc.setFont('Times','italic'); doc.setFontSize(14);
@@ -2306,7 +2413,7 @@ async function exportPdf(){
       doc.text((ch.titre||String(chapNum)), W/2, mHaut+18, {align:'center'});
       if(!ch.contenu) return;
 
-      const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu;
+      const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);
 
       // Extraire les segments avec leur style depuis un nœud DOM
       function extraireSegments(noeud){
@@ -2568,6 +2675,7 @@ async function exportDocx(){
     function htmlToParagraphs(html, indentFirst=true){
       const div=document.createElement('div');
       div.innerHTML=html||'';
+      normaliserTypoNode(div);
       const paras=[];
       function pTxt(txt,indent){
         const pPr=indent?'<w:ind w:firstLine="720"/><w:spacing w:after="200"/>':'<w:spacing w:after="200"/>';
@@ -3177,7 +3285,8 @@ async function sauvegarderCloud(){
         ...JSON.parse(JSON.stringify(P)),
         chapitres: P.chapitres.map(ch => ({
           id: ch.id, titre: ch.titre, niveau: ch.niveau||2,
-          mots: ch.mots||0, auteur_id: ch.auteur_id||null
+          mots: ch.mots||0, auteur_id: ch.auteur_id||null,
+          notesChap: ch.notesChap||''
         })),
         projet_cloud_id: null
       },
@@ -3200,14 +3309,14 @@ async function sauvegarderCloud(){
         // Si ce chapitre m'appartient, mettre à jour les mots
         if(mesIds.has(ch.id)){
           const local = P.chapitres.find(c => c.id === ch.id);
-          if(local) return {...ch, mots: local.mots||0, titre: local.titre, niveau: local.niveau||2};
+          if(local) return {...ch, mots: local.mots||0, titre: local.titre, niveau: local.niveau||2, notesChap: local.notesChap||''};
         }
         return ch;
       });
       // Ajouter les nouveaux chapitres qui n'existent pas encore dans projets.contenu
       P.chapitres.forEach(ch => {
         if(!chapitresFusionnes.find(c => c.id === ch.id)){
-          chapitresFusionnes.push({id: ch.id, titre: ch.titre, niveau: ch.niveau||2, mots: ch.mots||0, auteur_id: ch.auteur_id||null});
+          chapitresFusionnes.push({id: ch.id, titre: ch.titre, niveau: ch.niveau||2, mots: ch.mots||0, auteur_id: ch.auteur_id||null, notesChap: ch.notesChap||''});
         }
       });
       const contenuMaj = {
@@ -3218,6 +3327,7 @@ async function sauvegarderCloud(){
         liens: P.liens||[],
         infosBase: P.infosBase||[],
         notesLibres: P.notesLibres||'',
+        recherches: P.recherches||[],
         nid: P.nid,
         chapitres: chapitresFusionnes,
       };
@@ -3230,39 +3340,13 @@ async function sauvegarderCloud(){
 
   flash('Sauvegardé ✓'); setSaveStatus('ok');
 
-  // ── Stats : calcul 100% en mémoire (pas de comparaison avec Supabase) ──
-  if(sbUser && P.projet_cloud_id && _snapshotOuverture !== null){
-    try {
-      const totalMaintenant = P.chapitres.reduce((s,c) => s + (c.mots||0), 0);
-      const sessionDelta = Math.max(0, totalMaintenant - _snapshotOuverture);
-      const today = aujourdhui();
-      const uid = sbUser.id;
-
-      // Lire les mots déjà comptés aujourd'hui (sessions précédentes)
-      const { data: existant } = await sb.from('stats_ecriture')
-        .select('mots')
-        .eq('user_id', uid)
-        .eq('projet_id', P.projet_cloud_id)
-        .eq('date', today)
-        .maybeSingle();
-
-      const motsAvant = existant?.mots || 0;
-      const motsTotal = motsAvant + sessionDelta;
-
-      await sb.from('stats_ecriture').upsert({
-        user_id: uid,
-        projet_id: P.projet_cloud_id,
-        date: today,
-        mots: motsTotal > 15000 ? 0 : motsTotal, // garde-fou anti-inflation
-        snapshot_debut: totalMaintenant - (motsTotal > 15000 ? 0 : motsTotal),
-        total_mots: totalMaintenant
-      }, { onConflict: 'user_id,projet_id,date' });
-
-      // Mettre à jour le snapshot pour le prochain save (même session)
-      _snapshotOuverture = totalMaintenant;
-      if(window._motsDejaAujourdhui !== undefined) window._motsDejaAujourdhui = motsTotal;
-    } catch(e) { console.error('[stats]', e); }
-  }
+  // ── Stats du jour : calcul par chapitre (stats.js), pas par delta projet global ──
+  // L'ancien calcul comparait uniquement le total du projet à un snapshot pris à
+  // l'ouverture de session : déplacer du texte d'un chapitre à un autre (copier-coller,
+  // ou couper-coller) fait chuter temporairement ce total, ce qui remettait le snapshot
+  // à zéro et pouvait faire perdre les mots du jour déjà comptabilisés. mettreAJourStatsJour()
+  // (js/stats.js) calcule le delta par chapitre à partir d'une base figée pour la journée.
+  await mettreAJourStatsJour();
   // Backup sur WHC — filet de sécurité indépendant de Supabase
   try {
     fetch('https://iletaitunefois.net/encre/backup.php', {
@@ -3517,6 +3601,13 @@ async function chargerProjetCloud(row){
 async function supprimerProjetCloud(id, e){
   e.stopPropagation();
   if(!confirm('Supprimer ce projet du cloud ?')) return;
+  await Promise.all([
+    sb.from('chapitres').delete().eq('projet_id', id),
+    sb.from('verrous').delete().eq('projet_id', id),
+    sb.from('stats_ecriture').delete().eq('projet_id', id),
+    sb.from('collaborateurs').delete().eq('projet_id', id),
+    sb.from('commentaires').delete().eq('projet_id', id)
+  ]);
   const { error } = await sb.from('projets').delete().eq('id', id).eq('user_id', sbUser.id);
   if(error){ flash('Erreur suppression'); return; }
   ouvrirProjets();
@@ -3557,7 +3648,7 @@ async function creerProjetDashboard(){
     annee:     document.getElementById('cr-annee').value.trim(),
     synopsis:  document.getElementById('cr-synopsis').value.trim(),
     chapitres: [{ id:1, titre:'Chapitre I', contenu:'', mots:0, auteur_id: sbUser.id }],
-    personnages:[], lieux:[], timeline:[], nid:2,
+    personnages:[], lieux:[], timeline:[], recherches:[], nid:2,
     projet_cloud_id: null,
     echeance: {
       statut:   document.getElementById('cr-statut').value,
@@ -4113,7 +4204,7 @@ function fermerDashboard(){
 
 function ouvrirCarnetPage(){
   if(planMode) togglePlan();
-  document.getElementById('dashboard').classList.remove('on');
+  document.getElementById('dashboard')?.classList.remove('on');
   const _tb=document.getElementById('topbar'); if(_tb) _tb.style.display='none';
   const _ap=document.getElementById('app'); if(_ap) _ap.style.display='none';
   const _sb=document.getElementById('sb'); if(_sb) _sb.style.display='none';
@@ -5017,6 +5108,15 @@ async function supprimerProjetDash(id, e){
   e.stopPropagation();
   const row = dbProjets.find(r=>r.id===id);
   if(!confirm(`Supprimer "${row?.nom}" du cloud ?`)) return;
+  // Nettoyer d'abord les lignes liées (chapitres, verrous, stats, collaborateurs, commentaires)
+  // pour éviter que la suppression du projet échoue à cause de contraintes de clé étrangère.
+  await Promise.all([
+    sb.from('chapitres').delete().eq('projet_id', id),
+    sb.from('verrous').delete().eq('projet_id', id),
+    sb.from('stats_ecriture').delete().eq('projet_id', id),
+    sb.from('collaborateurs').delete().eq('projet_id', id),
+    sb.from('commentaires').delete().eq('projet_id', id)
+  ]);
   const { error } = await sb.from('projets').delete().eq('id', id).eq('user_id', sbUser.id);
   if(error){ alert('Erreur : '+error.message); return; }
   dbProjets = dbProjets.filter(r=>r.id!==id);

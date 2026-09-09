@@ -119,14 +119,22 @@
         snapshotDebut = ligneAujourd.snapshot_debut;
       } else {
         const { data: hier } = await sb.from('stats_ecriture')
-          .select('total_mots')
+          .select('total_mots, date')
           .eq('user_id', uid)
           .eq('projet_id', projetId)
           .lt('date', today)
           .order('date', { ascending: false })
           .limit(1)
           .maybeSingle();
-        snapshotDebut = hier?.total_mots ?? totalMaintenant;
+        // On ne fait confiance à ce total que s'il date d'hier (jour calendaire
+        // précédent). S'il y a un trou (plusieurs jours sans sauvegarde cloud —
+        // le mode hors ligne le permet maintenant), on ne sait pas répartir le
+        // travail entre ces jours : mieux vaut repartir de 0 aujourd'hui que de
+        // créditer tout le rattrapage en un seul bloc sur une seule journée.
+        const dHier = new Date(today + 'T00:00:00');
+        dHier.setDate(dHier.getDate() - 1);
+        const hierAttendu = `${dHier.getFullYear()}-${String(dHier.getMonth()+1).padStart(2,'0')}-${String(dHier.getDate()).padStart(2,'0')}`;
+        snapshotDebut = (hier && hier.date === hierAttendu) ? hier.total_mots : totalMaintenant;
       }
       if(snapshotDebut > totalMaintenant) snapshotDebut = totalMaintenant;
       motsJour = Math.max(0, totalMaintenant - snapshotDebut);

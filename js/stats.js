@@ -115,7 +115,7 @@
         .eq('date', today)
         .maybeSingle();
 
-      if(ligneAujourd && ligneAujourd.snapshot_debut > 0){
+      if(ligneAujourd && ligneAujourd.snapshot_debut != null){
         snapshotDebut = ligneAujourd.snapshot_debut;
       } else {
         const { data: hier } = await sb.from('stats_ecriture')

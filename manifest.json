@@ -9,12 +9,12 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%231a1410'/><path d='M96,27 C126,27 147,60 147,93 C147,126 120,156 99,177 L96,180 L93,177 C72,156 45,126 45,93 C45,60 66,27 96,27 Z' fill='%23c4922a'/><circle cx='96' cy='78' r='10' fill='%231a1410'/><line x1='96' y1='93' x2='96' y2='162' stroke='%231a1410' stroke-width='6' stroke-linecap='round'/></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%231a1410'/><text x='50%' y='58%' font-family='Georgia,serif' font-size='110' fill='%23c4622d' text-anchor='middle' dominant-baseline='middle' font-style='italic'>e</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%231a1410'/><path d='M256,72 C336,72 392,160 392,248 C392,336 320,416 264,472 L256,480 L248,472 C192,416 120,336 120,248 C120,160 176,72 256,72 Z' fill='%23c4922a'/><circle cx='256' cy='208' r='26' fill='%231a1410'/><line x1='256' y1='248' x2='256' y2='432' stroke='%231a1410' stroke-width='16' stroke-linecap='round'/></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%231a1410'/><text x='50%' y='58%' font-family='Georgia,serif' font-size='300' fill='%23c4622d' text-anchor='middle' dominant-baseline='middle' font-style='italic'>e</text></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml"
     }

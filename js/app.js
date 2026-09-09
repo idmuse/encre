@@ -2639,8 +2639,66 @@ async function exportPdf(){
 
 // ── Construit le .docx (styles Word, typographie, bulles texto) et retourne le blob ──
 // Partagé par l'export .docx classique et l'envoi vers l'Enlumineur.
-async function construireDocxBlob(){
+async function construireDocxBlob(avecCommentaires){
   if(typeof JSZip==='undefined') throw new Error('JSZip non chargé — vérifiez votre connexion internet.');
+
+  // ── Commentaires bêta-lecteurs (mode révision) ──
+  // Regroupés par chapitre, avec les réponses fusionnées dans le corps du
+  // commentaire parent (pas de fil de discussion Word natif — trop de
+  // complexité XML pour le bénéfice).
+  let commentairesParChapitre = [];
+  let commentairesNonPlaces = [];
+  if(avecCommentaires && P.projet_cloud_id){
+    const { data: tous } = await sb.from('commentaires')
+      .select('*').eq('projet_id', P.projet_cloud_id).order('cree_le');
+    const parents = (tous||[]).filter(c => !c.parent_id && c.contexte);
+    commentairesParChapitre = P.chapitres.map((ch,ci) => parents.filter(c => c.chapitre_idx === ci));
+    // Attache les réponses à leur parent
+    parents.forEach(c => {
+      c._reponses = (tous||[]).filter(r => r.parent_id === c.id);
+    });
+  }
+  let _commentId = 0;
+  const commentsXmlParts = [];
+  function texteCommentXml(c, id){
+    const dateIso = c.cree_le ? new Date(c.cree_le).toISOString() : new Date().toISOString();
+    let corps = x('w:p',{}, x('w:r',{}, x('w:t',{},esc2(c.texte||''))));
+    (c._reponses||[]).forEach(r=>{
+      corps += x('w:p',{}, x('w:r',{}, x('w:rPr',{},'<w:i/>') + x('w:t',{},esc2(`↳ ${r.auteur||'?'} : ${r.texte||''}`))));
+    });
+    return x('w:comment',{ 'w:id':id, 'w:author':esc2(c.auteur||'Lecteur·rice'), 'w:date':dateIso, 'w:initials':esc2((c.auteur||'?').slice(0,2).toUpperCase()) }, corps);
+  }
+  // Cherche le run <w:r>[rPr]<w:t ...>...texte...</w:t></w:r> qui contient ce
+  // passage exact et l'entoure des marqueurs de commentaire Word. Si le passage
+  // chevauche plusieurs runs (ex: coupé par du gras), on ne le trouve pas ici —
+  // il est alors ajouté en fin de chapitre (voir plus bas) pour ne pas le perdre.
+  function injecterCommentaireDansXml(xmlChapitre, c){
+    const needle = esc2(c.contexte||'').trim();
+    if(!needle) return { xml: xmlChapitre, placed:false };
+    const re = /<w:r>(<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t([^>]*)>([\s\S]*?)<\/w:t><\/w:r>/g;
+    let m;
+    while((m = re.exec(xmlChapitre))){
+      const [full, rPr='', tAttrs, txt] = m;
+      const pos = txt.indexOf(needle);
+      if(pos === -1) continue;
+      const id = _commentId++;
+      commentsXmlParts.push(texteCommentXml(c, id));
+      const mkRun = (t) => t ? `<w:r>${rPr}<w:t${tAttrs}>${t}</w:t></w:r>` : '';
+      const replacement =
+        mkRun(txt.slice(0,pos)) +
+        `<w:commentRangeStart w:id="${id}"/>` +
+        mkRun(txt.slice(pos, pos+needle.length)) +
+        `<w:commentRangeEnd w:id="${id}"/><w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr><w:commentReference w:id="${id}"/></w:r>` +
+        mkRun(txt.slice(pos+needle.length));
+      return { xml: xmlChapitre.slice(0, m.index) + replacement + xmlChapitre.slice(m.index+full.length), placed:true };
+    }
+    return { xml: xmlChapitre, placed:false };
+  }
+  function commentaireOrphelinXml(c){
+    const id = _commentId++;
+    commentsXmlParts.push(texteCommentXml(c, id));
+    return `<w:p><w:commentRangeStart w:id="${id}"/><w:commentRangeEnd w:id="${id}"/><w:r><w:rPr><w:rStyle w:val="CommentReference"/></w:rPr><w:commentReference w:id="${id}"/></w:r></w:p>`;
+  }
 
   // ── Helpers XML ──
   const x=(tag,attrs,inner)=>{
@@ -2808,7 +2866,18 @@ async function construireDocxBlob(){
     // Contenu (Titre 1 = section sans contenu propre)
     if(ch.contenu){
       const paras=htmlToParagraphs(ch.contenu, true);
-      body+=paras.join('');
+      let xmlChapitre=paras.join('');
+      const commsChapitre=commentairesParChapitre[ci]||[];
+      if(commsChapitre.length){
+        const orphelins=[];
+        commsChapitre.forEach(c=>{
+          const res=injecterCommentaireDansXml(xmlChapitre, c);
+          if(res.placed) xmlChapitre=res.xml;
+          else orphelins.push(c);
+        });
+        orphelins.forEach(c=>{ xmlChapitre+=commentaireOrphelinXml(c); });
+      }
+      body+=xmlChapitre;
     }
   });
 
@@ -2827,6 +2896,7 @@ ${body}
 </w:document>`;
 
   // ── Assembler le ZIP ──
+  const aDesCommentaires=commentsXmlParts.length>0;
   const zip=new JSZip();
   zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -2834,15 +2904,23 @@ ${body}
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  ${aDesCommentaires?'<Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>':''}
 </Types>`);
   zip.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`);
   zip.file('word/document.xml', docXml);
+  if(aDesCommentaires){
+    zip.file('word/comments.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+${commentsXmlParts.join('\n')}
+</w:comments>`);
+  }
   zip.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  ${aDesCommentaires?'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>':''}
 </Relationships>`);
   zip.file('word/styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -2885,6 +2963,10 @@ ${body}
     <w:color w:val="3C2810"/>
   </w:rPr>
   </w:style>
+  <w:style w:type="character" w:styleId="CommentReference">
+  <w:name w:val="Comment Reference"/>
+  <w:rPr><w:sz w:val="16"/></w:rPr>
+  </w:style>
 </w:styles>`);
 
   const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
@@ -2904,6 +2986,26 @@ async function exportDocx(){
     alert('Erreur export : '+err.message);
   } finally {
     btn.textContent='→ .docx'; btn.disabled=false;
+  }
+}
+
+// ── Export Word "mode révision" — commentaires bêta-lecteurs en vrais
+// commentaires Word, ancrés au passage exact quand c'est possible ──
+async function exportDocxRevision(){
+  if(!P.projet_cloud_id){ alert("Ce projet n'est pas sauvegardé dans le cloud — les commentaires des bêta-lecteurs ne peuvent pas être récupérés."); return; }
+  save();
+  save();
+  const btn=document.getElementById('btn-docx-revision');
+  const txtOrig=btn?btn.textContent:'';
+  if(btn){ btn.textContent='→ Génération…'; btn.disabled=true; }
+  try{
+    const blob=await construireDocxBlob(true);
+    dl(blob,(P.titre||'roman').replace(/\s+/g,'_')+'_revision.docx');
+    flash('Export révision terminé ✓ (commentaires inclus)');
+  } catch(err){
+    alert('Erreur export : '+err.message);
+  } finally {
+    if(btn){ btn.textContent=txtOrig||'→ Docx (révision)'; btn.disabled=false; }
   }
 }
 

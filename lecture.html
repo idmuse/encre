@@ -881,21 +881,28 @@ async function soumettreComm(){
   else renderCommPanel(ci, pi);
 }
 
-// ── Sélection de texte (desktop) ─────────────────────────
+// ── Sélection de texte (souris ET tactile) ────────────────
 let selTexte = '';
 let selCi = null;
 let selPi = null;
 
-document.addEventListener('mouseup', () => {
-  // Ignorer sur mobile
-  if(window.matchMedia('(hover:none)').matches) return;
-  setTimeout(gererSelection, 50);
+// selectionchange se déclenche à la souris comme au doigt (glisser les poignées
+// de sélection tactiles) — c'est ce qui permet de sélectionner un passage sur
+// mobile, pas seulement sur desktop.
+let _selChangeTimer = null;
+document.addEventListener('selectionchange', () => {
+  clearTimeout(_selChangeTimer);
+  _selChangeTimer = setTimeout(gererSelection, 180);
 });
 
 document.addEventListener('mousedown', (e) => {
   if(e.target.closest('#sel-btn')) return;
   cacherBoutonSel();
 });
+document.addEventListener('touchstart', (e) => {
+  if(e.target.closest('#sel-btn')) return;
+  cacherBoutonSel();
+}, { passive: true });
 
 function gererSelection(){
   const sel = window.getSelection();

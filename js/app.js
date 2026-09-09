@@ -2727,11 +2727,16 @@ async function construireDocxBlob(avecCommentaires){
   }
 
   // ── Construire les paragraphes du corps ──
-  function htmlToParagraphs(html, indentFirst=true){
+  // piMap : pour chaque "pi" (index de paragraphe tel que compté par lecture.html,
+  // qui ignore les bulles texto et les nœuds vides), la liste des indices dans
+  // paras[] qu'il produit ici — utilisé pour ancrer un commentaire dans le BON
+  // paragraphe plutôt que dans tout le chapitre.
+  function htmlToParagraphs(html, indentFirst=true, piMap=null){
     const div=document.createElement('div');
     div.innerHTML=html||'';
     normaliserTypoNode(div);
     const paras=[];
+    let _pi=0;
     function pTxt(txt,indent){
       const pPr=indent?'<w:ind w:firstLine="720"/><w:spacing w:after="200"/>':'<w:spacing w:after="200"/>';
       return x('w:p',{},x('w:pPr',{},pPr)+x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>') +x('w:t',{'xml:space':'preserve'},esc2(txt))));
@@ -2789,6 +2794,7 @@ async function construireDocxBlob(avecCommentaires){
       if((node.nodeName==='DIV'||node.nodeName==='P') && node.innerHTML.trim()==='<br>') return;
       // <div> ou <p> → paragraphe séparé
       if(node.nodeName==='DIV'||node.nodeName==='P'){
+        const _debut=paras.length;
         // Cas spécial : div avec un seul noeud texte géant
         if(node.childNodes.length===1 && node.childNodes[0].nodeType===3){
           const txt = node.childNodes[0].textContent;
@@ -2801,6 +2807,10 @@ async function construireDocxBlob(avecCommentaires){
                 x('w:r',{},x('w:rPr',{},'<w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>')+
                 x('w:t',{'xml:space':'preserve'},esc2(line.trim())))));
             });
+            if(piMap && paras.length>_debut){
+              piMap[_pi]=[]; for(let k=_debut;k<paras.length;k++) piMap[_pi].push(k);
+            }
+            _pi++;
             return;
           }
         }
@@ -2808,6 +2818,8 @@ async function construireDocxBlob(avecCommentaires){
         if(!runs.trim()) return;
         const pPr='<w:ind w:firstLine="720"/><w:spacing w:after="200"/>';
         paras.push(x('w:p',{},x('w:pPr',{},pPr)+runs));
+        if(piMap){ piMap[_pi]=[_debut]; }
+        _pi++;
         return;
       }
       // Autre élément (span, b, etc.)
@@ -2865,19 +2877,36 @@ async function construireDocxBlob(avecCommentaires){
     );
     // Contenu (Titre 1 = section sans contenu propre)
     if(ch.contenu){
-      const paras=htmlToParagraphs(ch.contenu, true);
-      let xmlChapitre=paras.join('');
       const commsChapitre=commentairesParChapitre[ci]||[];
+      const piMap = commsChapitre.length ? [] : null;
+      const paras=htmlToParagraphs(ch.contenu, true, piMap);
       if(commsChapitre.length){
         const orphelins=[];
         commsChapitre.forEach(c=>{
-          const res=injecterCommentaireDansXml(xmlChapitre, c);
-          if(res.placed) xmlChapitre=res.xml;
-          else orphelins.push(c);
+          let placed=false;
+          // 1. Chercher d'abord dans le paragraphe exact où le commentaire a été fait
+          // (évite d'accrocher un mot commun — "elle", "il" — à la mauvaise occurrence).
+          const indicesPreferes = (c.paragraphe_idx!=null && piMap[c.paragraphe_idx]) ? piMap[c.paragraphe_idx] : [];
+          for(const i of indicesPreferes){
+            const res=injecterCommentaireDansXml(paras[i], c);
+            if(res.placed){ paras[i]=res.xml; placed=true; break; }
+          }
+          // 2. Sinon, chercher ailleurs dans le chapitre (paragraphe déplacé depuis le commentaire)
+          if(!placed){
+            for(let i=0;i<paras.length;i++){
+              if(indicesPreferes.includes(i)) continue;
+              const res=injecterCommentaireDansXml(paras[i], c);
+              if(res.placed){ paras[i]=res.xml; placed=true; break; }
+            }
+          }
+          if(!placed) orphelins.push(c);
         });
+        let xmlChapitre=paras.join('');
         orphelins.forEach(c=>{ xmlChapitre+=commentaireOrphelinXml(c); });
+        body+=xmlChapitre;
+      } else {
+        body+=paras.join('');
       }
-      body+=xmlChapitre;
     }
   });
 

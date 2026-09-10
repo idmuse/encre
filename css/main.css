@@ -30,6 +30,8 @@ body{font-family:'Crimson Pro',serif;background:var(--paper);color:var(--ink);he
 #sbp-titre{font-family:'Playfair Display',serif;font-size:15px;color:var(--ink);font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #sbp-auteur{font-family:'Crimson Pro',serif;font-size:12px;color:var(--ink3);font-style:italic;margin-bottom:2px;}
 #sbp-meta{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink4);letter-spacing:.04em;}
+#sbp-edit-btn{margin-top:8px;background:none;border:1px solid var(--paper3);border-radius:4px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;color:var(--ink3);padding:4px 8px;}
+#sbp-edit-btn:hover{background:var(--paper3);color:var(--ink);}
 
 #sb-head{padding:9px 13px 6px;border-bottom:1px solid var(--paper3);display:flex;align-items:center;justify-content:space-between;}
 #sb-head span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink4);font-family:'JetBrains Mono',monospace;}

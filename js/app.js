@@ -3,6 +3,7 @@
 let P = {
   titre:'Mon Roman',
   auteur:'', sousTitre:'', genre:'', annee: new Date().getFullYear()+'', synopsis:'',
+  mentionsEditoriales:'', epigraphe:'', epigrapheAttribution:'', credits:'',
   chapitres:[{id:1,titre:'Chapitre I',contenu:'',mots:0}],
   personnages:[], lieux:[], timeline:[], recherches:[], nid:2
 };
@@ -222,6 +223,10 @@ function ouvrirFicheProjet(){
   document.getElementById('m-genre').value=P.genre||'';
   document.getElementById('m-annee').value=P.annee||'';
   document.getElementById('m-syn').value=P.synopsis||'';
+  document.getElementById('m-edition').value=P.mentionsEditoriales||'';
+  document.getElementById('m-epi').value=P.epigraphe||'';
+  document.getElementById('m-epi-attr').value=P.epigrapheAttribution||'';
+  document.getElementById('m-credits').value=P.credits||'';
   document.getElementById('modal-bg').classList.add('on');
   setTimeout(()=>document.getElementById('m-titre').focus(),50);
 }
@@ -2310,7 +2315,7 @@ async function lireDocx(input){
 
 function nouveauProjet(){
   if(!confirm('Nouveau projet ? Sauvegardez d\'abord si besoin.')) return;
-  P={titre:'Nouveau Roman',auteur:'',sousTitre:'',genre:'',annee:new Date().getFullYear()+'',synopsis:'',chapitres:[{id:1,titre:'Chapitre I',contenu:'',mots:0}],personnages:[],lieux:[],timeline:[],recherches:[],nid:2,projet_cloud_id:null};
+  P={titre:'Nouveau Roman',auteur:'',sousTitre:'',genre:'',annee:new Date().getFullYear()+'',synopsis:'',mentionsEditoriales:'',epigraphe:'',epigrapheAttribution:'',credits:'',chapitres:[{id:1,titre:'Chapitre I',contenu:'',mots:0}],personnages:[],lieux:[],timeline:[],recherches:[],nid:2,projet_cloud_id:null};
   document.getElementById('projet-nom').value=P.titre;
   document.getElementById('dashboard').classList.remove('on');
   fermerCarnetPage();
@@ -2639,7 +2644,11 @@ async function exportPdf(){
 
 // ── Construit le .docx (styles Word, typographie, bulles texto) et retourne le blob ──
 // Partagé par l'export .docx classique et l'envoi vers l'Enlumineur.
-async function construireDocxBlob(avecCommentaires){
+// pourEnlumineur=true ajoute les liminaires (mentions éditoriales, épigraphe,
+// crédits) en texte caché Word (##edition/##epi/##credits…##fin), invisibles
+// à la lecture normale mais lus par l'Enlumineur. Jamais présents dans l'export
+// .docx classique, pour garder ce fichier propre pour l'auteur·e.
+async function construireDocxBlob(avecCommentaires, pourEnlumineur){
   if(typeof JSZip==='undefined') throw new Error('JSZip non chargé — vérifiez votre connexion internet.');
 
   // ── Commentaires bêta-lecteurs (mode révision) ──
@@ -2863,6 +2872,31 @@ async function construireDocxBlob(avecCommentaires){
     );
   }
 
+  // ── Liminaires pour l'Enlumineur (texte caché, invisible à la lecture) ──
+  // Doivent apparaître avant le premier chapitre (contrainte de l'Enlumineur).
+  if(pourEnlumineur){
+    function pLiminaire(txt, align){
+      const jc = align ? `<w:jc w:val="${align}"/>` : '';
+      return x('w:p',{}, x('w:pPr',{}, jc+'<w:spacing w:after="0"/>') +
+        x('w:r',{}, x('w:rPr',{},'<w:vanish/><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria"/><w:sz w:val="24"/>') +
+          x('w:t',{'xml:space':'preserve'}, esc2(txt))));
+    }
+    function sectionLiminaire(tag, lignes){
+      const propres=(lignes||[]).map(l=>l.trim()).filter(Boolean);
+      if(!propres.length) return;
+      body+=pLiminaire('##'+tag);
+      propres.forEach((l,i)=> body+=pLiminaire(l, tag==='epi' ? 'center' : null));
+      body+=pLiminaire('##fin');
+    }
+    sectionLiminaire('edition', (P.mentionsEditoriales||'').split('\n'));
+    sectionLiminaire('credits', (P.credits||'').split('\n'));
+    if((P.epigraphe||'').trim()){
+      const lignesEpi=(P.epigraphe||'').split('\n');
+      if((P.epigrapheAttribution||'').trim()) lignesEpi.push('— '+P.epigrapheAttribution.trim());
+      sectionLiminaire('epi', lignesEpi);
+    }
+  }
+
   // Chapitres
   P.chapitres.forEach((ch,ci)=>{
     const niv = ch.niveau || 2;
@@ -3047,7 +3081,7 @@ async function exporterVersEnlumineur(){
   const txtOrig=btn?btn.textContent:'';
   if(btn){ btn.textContent='→ Génération…'; btn.disabled=true; }
   try{
-    const blob=await construireDocxBlob();
+    const blob=await construireDocxBlob(false, true);
     dl(blob,(P.titre||'roman').replace(/\s+/g,'_')+'.docx');
     window.open(ENLUMINEUR_URL,'_blank');
     flash("Fichier .docx téléchargé — dépose-le dans l'Enlumineur ✓");

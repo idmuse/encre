@@ -52,11 +52,13 @@ body{font-family:'Crimson Pro',serif;background:var(--paper);color:var(--ink);he
 /* Modal fiche projet */
 #modal-bg{position:fixed;inset:0;background:rgba(26,20,16,.55);z-index:2000;display:none;align-items:center;justify-content:center;}
 #modal-bg.on{display:flex;}
-#modal{background:var(--paper);border-radius:8px;padding:28px 32px;width:420px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+#modal{background:var(--paper);border-radius:8px;padding:28px 32px;width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
 #modal h3{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:18px;font-weight:600;}
 .modal-row{display:flex;gap:10px;}
 .modal-row .fi-wrap{flex:1;}
 #modal .fbr{margin-top:16px;}
+#modal .fi-section-title{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:20px 0 4px;padding-top:14px;border-top:1px solid var(--paper3);}
+#modal .fi-hint{font-size:11px;color:var(--ink3);margin:-2px 0 10px;line-height:1.4;}
 
 /* EDITOR */
 #ez{flex:1;display:flex;flex-direction:column;overflow:hidden;}

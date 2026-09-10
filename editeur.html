@@ -254,6 +254,20 @@
     </div>
     <label class="fl">Synopsis</label>
     <textarea class="fi fta" id="m-syn" style="min-height:80px" oninput="P.synopsis=this.value"></textarea>
+
+    <div class="fi-section-title">Liminaires</div>
+    <div class="fi-hint">Utilisées uniquement par l'export « → Enlumineur » (pages de garde, épigraphe, crédits) — jamais affichées dans l'export « → .docx » classique.</div>
+
+    <label class="fl">Mentions éditoriales <span style="opacity:.6">(page avant le titre — collection, première publication…)</span></label>
+    <textarea class="fi fta" id="m-edition" style="min-height:50px" oninput="P.mentionsEditoriales=this.value"></textarea>
+
+    <label class="fl">Épigraphe</label>
+    <textarea class="fi fta" id="m-epi" style="min-height:60px" oninput="P.epigraphe=this.value"></textarea>
+    <input class="fi" id="m-epi-attr" placeholder="Attribution (ex. Victor Hugo)" oninput="P.epigrapheAttribution=this.value">
+
+    <label class="fl">Page de crédits <span style="opacity:.6">(après le titre — ISBN, droits, design…)</span></label>
+    <textarea class="fi fta" id="m-credits" style="min-height:70px" oninput="P.credits=this.value"></textarea>
+
     <div class="fbr"><button class="fb fb-s" onclick="fermerModal()">Fermer</button></div>
   </div>
 </div>

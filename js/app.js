@@ -2684,7 +2684,11 @@ async function construireDocxBlob(avecCommentaires, pourEnlumineur){
   function injecterCommentaireDansXml(xmlChapitre, c){
     const needle = esc2(c.contexte||'').trim();
     if(!needle) return { xml: xmlChapitre, placed:false };
-    const re = /<w:r>(<w:rPr>[\s\S]*?<\/w:rPr>)?<w:t([^>]*)>([\s\S]*?)<\/w:t><\/w:r>/g;
+    // Les groupes sont bornés à la première fermeture rencontrée (au lieu d'un
+    // [\s\S]*? paresseux) pour empêcher le moteur regex de « sauter » par-dessus
+    // des marqueurs de commentaires déjà insérés par un appel précédent (ce qui
+    // dupliquait leurs balises de fin/référence dans le run reconstruit).
+    const re = /<w:r>(<w:rPr>(?:(?!<\/w:rPr>)[\s\S])*<\/w:rPr>)?<w:t([^>]*)>((?:(?!<\/w:t>)[\s\S])*)<\/w:t><\/w:r>/g;
     let m;
     while((m = re.exec(xmlChapitre))){
       const [full, rPr='', tAttrs, txt] = m;

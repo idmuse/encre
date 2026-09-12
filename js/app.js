@@ -757,6 +757,10 @@ function normaliserTypoTexte(s){
   return s
     .replace(/'/g, '’')
     .replace(/\.(\s?\.){2,}/g, '…')
+    // Ajoute l'espace insécable manquante avant !?:; quand la ponctuation est
+    // collée au mot (pas seulement quand un espace existe déjà) — exclut les
+    // chiffres pour ne pas toucher aux heures/ratios (3:00, 2077…).
+    .replace(/([^\s  \d])([!?;:]+)/g, '$1 $2')
     .replace(/[ \xa0]([;:!?])/g, ' $1')
     .replace(/[ \xa0]»/g, ' »')
     .replace(/« [ \xa0]?/g, '« ');

@@ -2365,16 +2365,6 @@ async function lireDocx(input){
   }
 }
 
-function nouveauProjet(){
-  if(!confirm('Nouveau projet ? Sauvegardez d\'abord si besoin.')) return;
-  P={titre:'Nouveau Roman',auteur:'',sousTitre:'',genre:'',annee:new Date().getFullYear()+'',synopsis:'',mentionsEditoriales:'',epigraphe:'',epigrapheAttribution:'',credits:'',chapitres:[{id:1,titre:'Chapitre I',contenu:'',mots:0}],personnages:[],lieux:[],timeline:[],recherches:[],nid:2,projet_cloud_id:null};
-  document.getElementById('projet-nom').value=P.titre;
-  document.getElementById('dashboard').classList.remove('on');
-  fermerCarnetPage();
-  setNavActive(null);
-  chapI=0; loadChap(0); renderPanel(); updateSbProjet();
-}
-
 // ── Export TXT ────────────────────────────────────────────
 function exportTxt(){
   save();
@@ -3423,6 +3413,21 @@ function setNavActive(id){
   document.querySelectorAll('.tb-nav').forEach(b=>b.classList.remove('active'));
   if(id) document.getElementById(id)?.classList.add('active');
 }
+
+// ── Menus déroulants du bandeau (ex: Fichier) ──────────────
+function tbToggleDropdown(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  const etaitOuvert = dd.classList.contains('open');
+  tbFermerDropdowns();
+  if(!etaitOuvert) dd.classList.add('open');
+}
+function tbFermerDropdowns(){
+  document.querySelectorAll('.tb-dd.open').forEach(dd=>dd.classList.remove('open'));
+}
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.tb-dd')) tbFermerDropdowns();
+});
 
 // ── LOGIN ─────────────────────────────────────────────────
 async function seDeconnecter(){

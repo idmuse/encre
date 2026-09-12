@@ -17,23 +17,27 @@
 <div id="topbar">
   <div class="logo" onclick="ouvrirDashboard()" style="cursor:pointer" title="Retour aux projets"><em>l'encrier</em></div>
   <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="nouveauProjet()">Nouveau</button>
-  <button class="tb-btn" onclick="sauvegarderCloud()">Sauvegarder ☁</button>
-  <button class="tb-btn" onclick="sauvegarderLocal()">↓ Local</button>
-  <button class="tb-btn" onclick="ouvrirRestoreBackup()" title="Restaurer un backup depuis le serveur">↩ Backup</button>
-  <button class="tb-btn" onclick="importerDocx()">← .docx</button>
-  <button class="tb-btn" id="btn-docx" onclick="exportDocx()">→ .docx</button>
-  <button class="tb-btn" id="btn-docx-revision" onclick="exportDocxRevision()" title="Export Word avec les commentaires des bêta-lecteurs, ancrés au passage exact">→ Docx (révision)</button>
-  <button class="tb-btn" id="btn-pdf" onclick="exportPdf()" title="Export PDF KDP 6×9">→ PDF</button>
-  <button class="tb-btn" id="btn-enlumineur" onclick="exporterVersEnlumineur()" title="Génère le .docx et ouvre l'Enlumineur dans un nouvel onglet">→ Enlumineur</button>
-  <button class="tb-btn" onclick="partagerLecture()" title="Lien de lecture pour bêtas">🔗 Partager</button>
+  <button class="tb-btn" onclick="sauvegarderCloud()" title="Sauvegarder dans le cloud"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M4 4a1 1 0 0 1 1-1h9l2 2v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4Z"/><path d="M7 3v4h5V3"/><path d="M6 11h8v5H6Z"/></svg><span class="tb-btn-label">Sauvegarder</span></button>
+  <div class="tb-dd" id="tb-dd-fichier">
+    <button class="tb-btn" onclick="tbToggleDropdown(event,'tb-dd-fichier')" title="Fichier"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M4 3h8l3 3v11H4Z"/><path d="M12 3v3h3"/></svg><span class="tb-btn-label">Fichier</span><svg class="tb-ic tb-dd-caret" viewBox="0 0 20 20"><path d="M5 8l5 5 5-5"/></svg></button>
+    <div class="tb-dd-menu">
+      <div class="tb-dd-item" onclick="sauvegarderLocal();tbFermerDropdowns()"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M10 3v10m0 0-3.5-3.5M10 13l3.5-3.5M4 15.5h12"/></svg>Télécharger en local</div>
+      <div class="tb-dd-item" onclick="ouvrirRestoreBackup();tbFermerDropdowns()" title="Restaurer un backup depuis le serveur"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M5 8a5.5 5.5 0 1 1 1 6.2M5 8v-3M5 8h3"/></svg>Restaurer un backup</div>
+      <div class="tb-dd-item" onclick="importerDocx();tbFermerDropdowns()"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M10 3v10m0 0-3.5-3.5M10 13l3.5-3.5M4 15.5h12"/></svg>Importer un .docx</div>
+      <div class="tb-dd-item" id="btn-docx" onclick="exportDocx();tbFermerDropdowns()"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M4 3h8l3 3v11H4Z"/><path d="M12 3v3h3"/></svg>Exporter en .docx</div>
+      <div class="tb-dd-item" id="btn-docx-revision" onclick="exportDocxRevision();tbFermerDropdowns()" title="Export Word avec les commentaires des bêta-lecteurs, ancrés au passage exact"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M4 3h8l3 3v11H4Z"/><path d="M12 3v3h3"/><circle cx="14.5" cy="14.5" r="3.2" fill="#241d17" stroke-width="1.4"/><path d="M13.3 14.5h2.4M14.5 13.3v2.4" stroke-width="1.2"/></svg>Exporter (révision)</div>
+      <div class="tb-dd-item" id="btn-pdf" onclick="exportPdf();tbFermerDropdowns()" title="Export PDF KDP 6×9"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M4 3h8l3 3v11H4Z"/><path d="M12 3v3h3"/></svg>Exporter en PDF</div>
+    </div>
+  </div>
+  <button class="tb-btn tb-gold" id="btn-enlumineur" onclick="exporterVersEnlumineur()" title="Génère le .docx et ouvre l'Enlumineur dans un nouvel onglet"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M10 5c-1.5-1-4-1.5-6-1v11c2-.5 4.5 0 6 1 1.5-1 4-1.5 6-1V4c-2-.5-4.5 0-6 1Z"/><path d="M10 5v11"/></svg><span class="tb-btn-label">Enlumineur</span></button>
+  <button class="tb-btn" onclick="partagerLecture()" title="Lien de lecture pour bêtas"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M8 12a3 3 0 0 0 4.2.3l2-2a3 3 0 0 0-4.2-4.2l-1 1"/><path d="M12 8a3 3 0 0 0-4.2-.3l-2 2a3 3 0 0 0 4.2 4.2l1-1"/></svg><span class="tb-btn-label">Partager</span></button>
   <div style="margin-left:auto;display:flex;align-items:center;gap:0">
     <div class="tb-sep"></div>
-    <button class="tb-btn tb-nav" id="nav-projets" onclick="ouvrirDashboard()" style="text-transform:uppercase;letter-spacing:.06em">Projets</button>
-    <button class="tb-btn tb-nav" id="nav-plan" onclick="togglePlan()" style="text-transform:uppercase;letter-spacing:.06em">Plan</button>
+    <button class="tb-btn tb-nav" id="nav-projets" onclick="ouvrirDashboard()" title="Retour aux projets"><svg class="tb-ic" viewBox="0 0 20 20"><rect x="3" y="4" width="6" height="6" rx="1"/><rect x="11" y="4" width="6" height="6" rx="1"/><rect x="3" y="12" width="6" height="4" rx="1"/><rect x="11" y="12" width="6" height="4" rx="1"/></svg><span class="tb-btn-label">Projets</span></button>
+    <button class="tb-btn tb-nav" id="nav-plan" onclick="togglePlan()" title="Plan du roman"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M3 15V6l4-2 6 2 4-2v9l-4 2-6-2Z"/><path d="M7 4v9M13 6v9"/></svg><span class="tb-btn-label">Plan</span></button>
   </div>
   <a href="guide.html" target="_blank" title="Guide d'utilisation" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b5a4e;text-decoration:none;padding:2px 7px;border:1px solid #3a3028;border-radius:50%;line-height:1;cursor:pointer;margin-right:4px;transition:color .15s" onmouseover="this.style.color='#c4a882'" onmouseout="this.style.color='#6b5a4e'">?</a>
-  <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="font-size:14px;padding:2px 8px;">🌙</button>
+  <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="padding:2px 8px;"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M15 11.5A6 6 0 0 1 8.5 5 6 6 0 1 0 15 11.5Z"/></svg></button>
   <span id="save-status" title="Statut sauvegarde" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;cursor:default">☁ ●</span>
   <span id="lt-badge" title="LanguageTool" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;cursor:default">LT ●</span>
   <input id="projet-nom" value="Mon Roman" onchange="P.titre=this.value" style="display:none">
@@ -73,17 +77,17 @@
       <button class="fmt-btn" onclick="fmt('italic')" title="Italique (Ctrl+I)"><em>I</em></button>
       <button class="fmt-btn" onclick="fmt('underline')" title="Souligné (Ctrl+U)"><u>S</u></button>
       <div class="fmt-sep"></div>
-      <button class="fmt-btn" onclick="fmt('removeFormat')" title="Effacer">✕</button>
+      <button class="fmt-btn" onclick="fmt('removeFormat')" title="Effacer la mise en forme"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M9 15 15 9a2 2 0 0 0 0-2.8l-2.2-2.2a2 2 0 0 0-2.8 0L4 10l5 5Z"/><path d="M7 17h9"/></svg></button>
       <div class="fmt-sep"></div>
-      <button class="fmt-btn" onclick="alignerTexte('left')" title="Gauche">⬅</button>
-      <button class="fmt-btn" onclick="alignerTexte('center')" title="Centré">☰</button>
-      <button class="fmt-btn" onclick="alignerTexte('right')" title="Droite">➡</button>
-      <button class="fmt-btn" onclick="alignerTexte('justify')" title="Justifié" style="font-weight:600">≡</button>
+      <button class="fmt-btn" onclick="alignerTexte('left')" title="Aligner à gauche"><svg class="tb-ic" viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="9" x2="11" y2="9"/><line x1="3" y1="13" x2="15" y2="13"/><line x1="3" y1="17" x2="9" y2="17"/></svg></button>
+      <button class="fmt-btn" onclick="alignerTexte('center')" title="Centrer"><svg class="tb-ic" viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="6" y1="9" x2="14" y2="9"/><line x1="4" y1="13" x2="16" y2="13"/><line x1="7" y1="17" x2="13" y2="17"/></svg></button>
+      <button class="fmt-btn" onclick="alignerTexte('right')" title="Aligner à droite"><svg class="tb-ic" viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="9" y1="9" x2="17" y2="9"/><line x1="5" y1="13" x2="17" y2="13"/><line x1="11" y1="17" x2="17" y2="17"/></svg></button>
+      <button class="fmt-btn" onclick="alignerTexte('justify')" title="Justifier"><svg class="tb-ic" viewBox="0 0 20 20"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="9" x2="17" y2="9"/><line x1="3" y1="13" x2="17" y2="13"/><line x1="3" y1="17" x2="17" y2="17"/></svg></button>
       <div class="fmt-sep"></div>
-      <button class="fmt-btn" onclick="insererTexto('droite')" title="Bulle texto droite (envoyé)" style="font-size:12px">💬→</button>
-      <button class="fmt-btn" onclick="insererTexto('gauche')" title="Bulle texto gauche (reçu)" style="font-size:12px">←💬</button>
+      <button class="fmt-btn" onclick="insererTexto('droite')" title="Bulle texto — envoyé (côté droit)"><svg class="tb-ic" viewBox="0 0 20 20"><path d="M3 4h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg><svg class="tb-ic" style="width:9px;height:9px;margin-left:-3px" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5"/></svg></button>
+      <button class="fmt-btn" onclick="insererTexto('gauche')" title="Bulle texto — reçu (côté gauche)"><svg class="tb-ic" style="width:9px;height:9px;margin-right:-3px" viewBox="0 0 20 20"><path d="M13 5l-5 5 5 5"/></svg><svg class="tb-ic" style="transform:scaleX(-1)" viewBox="0 0 20 20"><path d="M3 4h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></button>
       <div class="fmt-sep"></div>
-      <button class="fmt-btn" onclick="ouvrirModalCorrections()" title="Gérer mes corrections automatiques" style="font-size:10px">ABC</button>
+      <button class="fmt-btn" onclick="ouvrirModalCorrections()" title="Gérer mes corrections automatiques" style="font-size:10px;font-family:'JetBrains Mono',monospace">ABC</button>
     </div>
     <div id="es">
       <div id="editor" contenteditable="true" spellcheck="true" lang="fr"

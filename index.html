@@ -96,6 +96,26 @@
   </div>
 </div>
 
+<!-- SUGGESTION MODAL -->
+<div id="modal-suggestion-bg" onclick="if(event.target===this)fermerModalSuggestion()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99999;overflow-y:auto;padding:40px 20px;backdrop-filter:blur(3px);">
+  <div style="background:var(--paper);border-radius:12px;padding:28px 32px;width:min(480px,92vw);margin:0 auto;box-shadow:0 4px 20px rgba(0,0,0,.1);">
+    <h3 style="font-family:'Crimson Pro',serif;font-size:22px;margin:0 0 6px;color:var(--ink);">Une suggestion ?</h3>
+    <p style="font-family:'Crimson Pro',serif;font-size:14px;color:var(--ink3);margin:0 0 18px;">Un bug, une idée d'amélioration, une fonction qui manque — ça m'arrive directement, par courriel.</p>
+
+    <label class="fl">Votre message</label>
+    <textarea class="fi fta" id="sugg-texte" placeholder="Décrivez votre idée ou le problème rencontré…" style="min-height:120px;margin-bottom:12px"></textarea>
+
+    <label class="fl">Votre courriel <span style="font-size:11px;color:var(--ink3)">(facultatif, pour qu'on puisse vous répondre)</span></label>
+    <input class="fi" id="sugg-email" placeholder="vous@exemple.com" style="margin-bottom:4px">
+    <div id="sugg-status" style="font-size:12px;margin:2px 0 12px;min-height:16px;color:var(--ink3)"></div>
+
+    <div class="fbr" style="gap:10px">
+      <button class="fb fb-s" id="sugg-btn-envoyer" onclick="envoyerSuggestion()">Envoyer</button>
+      <button class="fb" onclick="fermerModalSuggestion()" style="background:none;border:1px solid var(--paper3)">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <div id="projets-modal" onclick="if(event.target===this)fermerProjets()">
   <div id="projets-box">
     <h3>Mes projets</h3>
@@ -237,12 +257,14 @@
       <span id="db-user"></span>
       <button class="tb-btn" onclick="ouvrirModalMots()" style="color:#6ab87a" title="Ajouter des mots">＋ <span class="tb-btn-label">MOTS</span></button>
       <a href="stats-page.html" class="tb-btn" style="color:#c4922a;text-decoration:none;display:inline-flex;align-items:center;gap:3px" title="Statistiques annuelles"><span class="tb-btn-label">STATS</span></a>
+      <button class="tb-btn" onclick="ouvrirCarnetPage()" style="color:#9c8878" title="Carnet d'idées — germer vos prochains romans">📓 <span class="tb-btn-label">Carnet</span></button>
       <button class="tb-btn" onclick="ouvrirModalProfil()" style="color:#c4a882" title="Mon profil">✍ <span class="tb-btn-label">Mon profil</span></button>
       <button class="tb-btn tb-desktop-only" id="btn-lien-profil" onclick="copierLienProfil()" title="Copier le lien de mon profil public" style="color:#b8892a;display:none">🔗 <span class="tb-btn-label">Profil</span></button>
       <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="font-size:14px;padding:2px 8px;margin-right:2px;">🌙</button><a href="guide.html" target="_blank" title="Guide d'utilisation" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#9c8878;text-decoration:none;padding:2px 7px;border:1px solid #4a3f35;border-radius:50%;line-height:1;cursor:pointer;margin-right:2px;transition:color .15s" onmouseover="this.style.color='#c4a882'" onmouseout="this.style.color='#9c8878'">?</a>
       <button class="tb-btn" onclick="seDeconnecter()" title="Se déconnecter" style="font-size:15px;padding:2px 6px;opacity:.7">⏏</button>
     </div>
   </div>
+  <button id="suggestion-fab" onclick="ouvrirModalSuggestion()" title="Laisser une suggestion pour l'appli">💬</button>
   <div id="db-body">
     <div id="db-greeting" style="font-family:'Playfair Display',serif;font-size:26px;font-weight:400;color:var(--ink);margin-bottom:32px;line-height:1.4;"></div>
 
@@ -349,6 +371,35 @@
         Importer
       </button>
     </div>
+  </div>
+</div>
+
+<!-- CARNET PAGE PLEINE -->
+<div id="carnet-page" style="position:fixed;inset:0;background:var(--paper);z-index:8000;display:none;flex-direction:column;">
+  <div style="display:flex;align-items:center;background:var(--ink);height:42px;padding:0 16px;flex-shrink:0;">
+    <div class="logo" onclick="fermerCarnetPage()" style="cursor:pointer"><em>l'encrier</em></div>
+    <div class="tb-sep" style="background:#3a3028;margin:0 8px"></div>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;letter-spacing:.08em;text-transform:uppercase">Carnet d'idées</span>
+    <button class="tb-btn" onclick="fermerCarnetPage()" style="margin-left:auto;color:#a09080">← Accueil</button>
+  </div>
+  <div id="carnet-view" style="display:flex;flex:1;overflow:hidden;flex-direction:row;">
+    <div id="carnet-sidebar">
+      <div id="carnet-sidebar-head">
+        <span>Carnet</span>
+        <button class="icon-btn" onclick="carnetNouveau()" title="Nouvelle idée">＋</button>
+      </div>
+      <div id="carnet-list"></div>
+      <div style="padding:8px 14px;border-top:1px solid var(--paper3);display:flex;gap:6px;">
+        <button style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:5px;cursor:pointer;color:var(--ink3);" onclick="carnetSauvegarder()" title="Exporter une copie de secours en fichier">Exporter</button>
+        <button style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:5px;cursor:pointer;color:var(--ink3);" onclick="carnetCharger()" title="Importer un fichier de secours">Importer</button>
+      </div>
+    </div>
+      <div id="carnet-editor">
+        <div id="carnet-empty">
+          <p>Sélectionnez une idée ou créez-en une nouvelle</p>
+          <button class="fb fb-s" style="max-width:180px" onclick="carnetNouveau()">+ Nouvelle idée</button>
+        </div>
+      </div>
   </div>
 </div>
 

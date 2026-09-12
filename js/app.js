@@ -1320,10 +1320,21 @@ function renderEtapes(){
 }
 
 // ── Carnet auteur ─────────────────────────────────────────
-let CA = { idees:[], nid:1 };
-let carnetFiInput=null;
+// Idées de roman, indépendantes de tout projet — vivent sur l'accueil, pas
+// dans l'éditeur. Sauvegardées dans Supabase (table carnet_idees), une ligne
+// par idée, propriétaire = l'utilisateur connecté (RLS user_id = auth.uid()).
+const CARNET_CHAMPS = ['titre','statut','genre','premisse','idee','themes','persos','refs','notes'];
+let CA = { idees:[] };
+let _carnetCharge = false;
 
 function toggleCarnet(){ ouvrirCarnetPage(); }
+
+async function chargerCarnetCloud(){
+  if(!sbUser) return;
+  const { data } = await sb.from('carnet_idees').select('*').eq('user_id', sbUser.id).order('cree_le');
+  CA.idees = data || [];
+  _carnetCharge = true;
+}
 
 function renderCarnetList(){
   const list=document.getElementById('carnet-list'); list.innerHTML='';
@@ -1344,67 +1355,89 @@ function renderCarnetEditor(i){
   ed.innerHTML=`
     <div id="carnet-header">
       <input id="carnet-titre-input" value="${esc(id.titre||'')}" placeholder="Titre de l'idée…"
-        oninput="CA.idees[${i}].titre=this.value;renderCarnetList()">
+        oninput="carnetChamp(${i},'titre',this.value);renderCarnetList()">
       <div id="carnet-meta">
-        <select id="carnet-statut" onchange="CA.idees[${i}].statut=this.value;renderCarnetList()">
+        <select id="carnet-statut" onchange="carnetChamp(${i},'statut',this.value);renderCarnetList()">
           <option value="germe" ${(id.statut||'germe')==='germe'?'selected':''}>Germe</option>
           <option value="dev" ${id.statut==='dev'?'selected':''}>En développement</option>
           <option value="ecrire" ${id.statut==='ecrire'?'selected':''}>À écrire</option>
         </select>
         <input id="carnet-genre-input" placeholder="genre…" value="${esc(id.genre||'')}"
-          oninput="CA.idees[${i}].genre=this.value">
+          oninput="carnetChamp(${i},'genre',this.value)">
         <button onclick="carnetSupprimer(${i})" style="margin-left:auto;background:none;border:none;font-size:12px;color:var(--accent);cursor:pointer;font-family:'Crimson Pro',serif">Supprimer</button>
       </div>
     </div>
     <div id="carnet-body">
       <div class="carnet-section">
         <div class="carnet-section-label">Prémisse</div>
-        <textarea class="carnet-field" placeholder="En une phrase : qui veut quoi contre quoi ?" oninput="CA.idees[${i}].premisse=this.value">${esc(id.premisse||'')}</textarea>
+        <textarea class="carnet-field" placeholder="En une phrase : qui veut quoi contre quoi ?" oninput="carnetChamp(${i},'premisse',this.value)">${esc(id.premisse||'')}</textarea>
       </div>
       <div class="carnet-section">
         <div class="carnet-section-label">L'idée centrale</div>
-        <textarea class="carnet-field" placeholder="Quelle est l'étincelle ? D'où vient cette idée ?" oninput="CA.idees[${i}].idee=this.value" style="min-height:90px">${esc(id.idee||'')}</textarea>
+        <textarea class="carnet-field" placeholder="Quelle est l'étincelle ? D'où vient cette idée ?" oninput="carnetChamp(${i},'idee',this.value)" style="min-height:90px">${esc(id.idee||'')}</textarea>
       </div>
       <div class="carnet-section">
         <div class="carnet-section-label">Thèmes & questions</div>
-        <textarea class="carnet-field" placeholder="Quels thèmes veux-tu explorer ? Quelles questions sans réponse ?" oninput="CA.idees[${i}].themes=this.value">${esc(id.themes||'')}</textarea>
+        <textarea class="carnet-field" placeholder="Quels thèmes veux-tu explorer ? Quelles questions sans réponse ?" oninput="carnetChamp(${i},'themes',this.value)">${esc(id.themes||'')}</textarea>
       </div>
       <div class="carnet-section">
         <div class="carnet-section-label">Personnages pressentis</div>
-        <textarea class="carnet-field" placeholder="Qui peuple ce roman ? Même des ébauches…" oninput="CA.idees[${i}].persos=this.value">${esc(id.persos||'')}</textarea>
+        <textarea class="carnet-field" placeholder="Qui peuple ce roman ? Même des ébauches…" oninput="carnetChamp(${i},'persos',this.value)">${esc(id.persos||'')}</textarea>
       </div>
       <div class="carnet-section">
         <div class="carnet-section-label">Références & inspirations</div>
-        <textarea class="carnet-field" placeholder="Livres, films, souvenirs, phrases entendues…" oninput="CA.idees[${i}].refs=this.value">${esc(id.refs||'')}</textarea>
+        <textarea class="carnet-field" placeholder="Livres, films, souvenirs, phrases entendues…" oninput="carnetChamp(${i},'refs',this.value)">${esc(id.refs||'')}</textarea>
       </div>
       <div class="carnet-section">
         <div class="carnet-section-label">Notes libres</div>
-        <textarea class="carnet-field" placeholder="Tout le reste — fragments, dialogues, images…" oninput="CA.idees[${i}].notes=this.value" style="min-height:120px">${esc(id.notes||'')}</textarea>
+        <textarea class="carnet-field" placeholder="Tout le reste — fragments, dialogues, images…" oninput="carnetChamp(${i},'notes',this.value)" style="min-height:120px">${esc(id.notes||'')}</textarea>
       </div>
     </div>`;
 }
 
-function carnetNouveau(){
-  CA.idees.push({id:CA.nid++,titre:'',statut:'germe',genre:'',premisse:'',idee:'',themes:'',persos:'',refs:'',notes:''});
+// Met à jour le champ localement (UI réactive) et programme une sauvegarde
+// cloud après une courte pause de frappe.
+function carnetChamp(i, champ, valeur){
+  const idee=CA.idees[i]; if(!idee) return;
+  idee[champ]=valeur;
+  clearTimeout(idee._saveTimer);
+  idee._saveTimer=setTimeout(()=>carnetSauvegarderCloud(idee), 900);
+}
+
+async function carnetSauvegarderCloud(idee){
+  if(!sbUser || !idee?.id) return;
+  const maj={}; CARNET_CHAMPS.forEach(c=>maj[c]=idee[c]??''); maj.maj_le=new Date().toISOString();
+  await sb.from('carnet_idees').update(maj).eq('id', idee.id);
+}
+
+async function carnetNouveau(){
+  if(!sbUser) return;
+  const ligne={ user_id:sbUser.id }; CARNET_CHAMPS.forEach(c=>ligne[c]=c==='statut'?'germe':'');
+  const { data, error } = await sb.from('carnet_idees').insert(ligne).select().single();
+  if(error){ alert("Erreur : impossible de créer l'idée."); return; }
+  CA.idees.push(data);
   carnetActif=CA.idees.length-1;
   renderCarnetList();
   renderCarnetEditor(carnetActif);
   setTimeout(()=>document.getElementById('carnet-titre-input')?.focus(),50);
 }
 
-function carnetSupprimer(i){
+async function carnetSupprimer(i){
   if(!confirm('Supprimer cette idée ?')) return;
+  const idee=CA.idees[i];
   CA.idees.splice(i,1);
   carnetActif=CA.idees.length>0?Math.min(i,CA.idees.length-1):null;
   renderCarnetList();
   if(carnetActif!==null) renderCarnetEditor(carnetActif);
   else document.getElementById('carnet-editor').innerHTML=`<div id="carnet-empty"><p>Sélectionnez une idée ou créez-en une nouvelle</p><button class="fb fb-s" style="max-width:180px" onclick="carnetNouveau()">+ Nouvelle idée</button></div>`;
+  if(idee?.id) await sb.from('carnet_idees').delete().eq('id', idee.id);
 }
 
+// Export/import restent en local, en plus du cloud, comme filet de sécurité.
 function carnetSauvegarder(){
   const b=new Blob([JSON.stringify(CA,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(b);
-  a.download='mon_carnet.auteur'; a.click(); flash('Carnet sauvegardé ✓');
+  a.download='mon_carnet.auteur'; a.click(); flash('Carnet exporté ✓');
 }
 
 function carnetCharger(){
@@ -1412,7 +1445,22 @@ function carnetCharger(){
   inp.onchange=e=>{
     const f=e.target.files[0]; if(!f) return;
     const r=new FileReader();
-    r.onload=ev=>{ try{ CA=JSON.parse(ev.target.result); carnetActif=CA.idees.length>0?0:null; renderCarnetList(); if(carnetActif!==null) renderCarnetEditor(0); flash('Carnet chargé ✓'); }catch{ alert('Fichier invalide.'); }};
+    r.onload=async ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        const idees=data.idees||[];
+        if(!idees.length){ flash('Fichier vide.'); return; }
+        if(!confirm(`Importer ${idees.length} idée(s) dans votre carnet ?`)) return;
+        const lignes=idees.map(id=>{ const l={ user_id:sbUser.id }; CARNET_CHAMPS.forEach(c=>l[c]=id[c]||(c==='statut'?'germe':'')); return l; });
+        const { error } = await sb.from('carnet_idees').insert(lignes);
+        if(error){ alert("Erreur à l'import."); return; }
+        await chargerCarnetCloud();
+        carnetActif=CA.idees.length>0?0:null;
+        renderCarnetList();
+        if(carnetActif!==null) renderCarnetEditor(0);
+        flash('Carnet importé ✓');
+      }catch{ alert('Fichier invalide.'); }
+    };
     r.readAsText(f);
   };
   inp.click();
@@ -4489,7 +4537,7 @@ function fermerDashboard(){
   setNavActive(null);
 }
 
-function ouvrirCarnetPage(){
+async function ouvrirCarnetPage(){
   if(planMode) togglePlan();
   document.getElementById('dashboard')?.classList.remove('on');
   const _tb=document.getElementById('topbar'); if(_tb) _tb.style.display='none';
@@ -4497,8 +4545,15 @@ function ouvrirCarnetPage(){
   const _sb=document.getElementById('sb'); if(_sb) _sb.style.display='none';
   const _cp2=document.getElementById('carnet-page'); if(_cp2) _cp2.style.display='flex';
   setNavActive('nav-carnet');
-  if(carnetActif !== null) renderCarnetEditor(carnetActif);
-  else renderCarnetList();
+  if(!_carnetCharge){
+    const list=document.getElementById('carnet-list');
+    if(list) list.innerHTML='<div style="padding:14px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--ink4)">Chargement…</div>';
+    await chargerCarnetCloud();
+  }
+  if(carnetActif===null || !CA.idees[carnetActif]) carnetActif = CA.idees.length>0 ? 0 : null;
+  renderCarnetList();
+  if(carnetActif!==null) renderCarnetEditor(carnetActif);
+  else document.getElementById('carnet-editor').innerHTML=`<div id="carnet-empty"><p>Sélectionnez une idée ou créez-en une nouvelle</p><button class="fb fb-s" style="max-width:180px" onclick="carnetNouveau()">+ Nouvelle idée</button></div>`;
 }
 
 function fermerCarnetPage(){
@@ -5294,6 +5349,64 @@ function aperçuAvatar(url){
 
 function fermerModalProfil(){
   document.getElementById('modal-profil-bg').style.display = 'none';
+}
+
+// ── Suggestion (page d'accueil) ────────────────────────────
+// Envoi direct par courriel via Web3Forms (aucun backend à héberger).
+// Clé gratuite à obtenir en 30s sur https://web3forms.com/ (juste une adresse
+// courriel à entrer, pas de compte à créer) puis à coller ici.
+const WEB3FORMS_ACCESS_KEY = 'REMPLACER_PAR_VOTRE_CLE_WEB3FORMS';
+
+function ouvrirModalSuggestion(){
+  document.getElementById('sugg-texte').value = '';
+  document.getElementById('sugg-email').value = '';
+  document.getElementById('sugg-status').textContent = '';
+  document.getElementById('modal-suggestion-bg').style.display = 'flex';
+  setTimeout(()=>document.getElementById('sugg-texte')?.focus(), 50);
+}
+
+function fermerModalSuggestion(){
+  document.getElementById('modal-suggestion-bg').style.display = 'none';
+}
+
+async function envoyerSuggestion(){
+  const texte = document.getElementById('sugg-texte').value.trim();
+  const email = document.getElementById('sugg-email').value.trim();
+  const statusEl = document.getElementById('sugg-status');
+  if(!texte){ statusEl.textContent = 'Écrivez un message avant d\'envoyer.'; statusEl.style.color = 'var(--accent)'; return; }
+  if(WEB3FORMS_ACCESS_KEY === 'REMPLACER_PAR_VOTRE_CLE_WEB3FORMS'){
+    statusEl.textContent = "Le formulaire n'est pas encore configuré (clé manquante).";
+    statusEl.style.color = 'var(--accent)';
+    return;
+  }
+  const btn = document.getElementById('sugg-btn-envoyer');
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  try{
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_key: WEB3FORMS_ACCESS_KEY,
+        subject: "Suggestion — L'Encrier",
+        from_name: window._pseudoProfil || 'Une lectrice ou un lecteur de L\'Encrier',
+        replyto: email || undefined,
+        message: texte + (email ? `\n\n— répondre à : ${email}` : ''),
+      }),
+    });
+    const data = await res.json();
+    if(data.success){
+      fermerModalSuggestion();
+      flash('Suggestion envoyée — merci ! ✓');
+    } else {
+      statusEl.textContent = "Erreur à l'envoi. Réessayez dans un instant.";
+      statusEl.style.color = 'var(--accent)';
+    }
+  } catch(e){
+    statusEl.textContent = "Erreur réseau — vérifiez votre connexion.";
+    statusEl.style.color = 'var(--accent)';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Envoyer';
+  }
 }
 
 function copierLienProfilModal(){

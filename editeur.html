@@ -31,7 +31,6 @@
     <div class="tb-sep"></div>
     <button class="tb-btn tb-nav" id="nav-projets" onclick="ouvrirDashboard()" style="text-transform:uppercase;letter-spacing:.06em">Projets</button>
     <button class="tb-btn tb-nav" id="nav-plan" onclick="togglePlan()" style="text-transform:uppercase;letter-spacing:.06em">Plan</button>
-    <button class="tb-btn tb-nav" id="nav-carnet" onclick="ouvrirCarnetPage()" style="text-transform:uppercase;letter-spacing:.06em">Carnet</button>
   </div>
   <a href="guide.html" target="_blank" title="Guide d'utilisation" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b5a4e;text-decoration:none;padding:2px 7px;border:1px solid #3a3028;border-radius:50%;line-height:1;cursor:pointer;margin-right:4px;transition:color .15s" onmouseover="this.style.color='#c4a882'" onmouseout="this.style.color='#6b5a4e'">?</a>
   <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="font-size:14px;padding:2px 8px;">🌙</button>
@@ -43,35 +42,6 @@
   <input type="file" id="pi" accept="image/*" style="display:none" onchange="photoLue(this)">
 </div>
 
-
-<!-- CARNET PAGE PLEINE -->
-<div id="carnet-page" style="position:fixed;inset:0;background:var(--paper);z-index:8000;display:none;flex-direction:column;">
-  <div style="display:flex;align-items:center;background:var(--ink);height:42px;padding:0 16px;flex-shrink:0;">
-    <div class="logo" onclick="fermerCarnetPage()" style="cursor:pointer"><em>l'encrier</em></div>
-    <div class="tb-sep" style="background:#3a3028;margin:0 8px"></div>
-    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;letter-spacing:.08em;text-transform:uppercase">Carnet d'idées</span>
-    <button class="tb-btn" onclick="fermerCarnetPage()" style="margin-left:auto;color:#a09080">← Éditeur</button>
-  </div>
-  <div id="carnet-view" style="display:flex;flex:1;overflow:hidden;flex-direction:row;">
-    <div id="carnet-sidebar">
-      <div id="carnet-sidebar-head">
-        <span>Carnet</span>
-        <button class="icon-btn" onclick="carnetNouveau()" title="Nouvelle idée">＋</button>
-      </div>
-      <div id="carnet-list"></div>
-      <div style="padding:8px 14px;border-top:1px solid var(--paper3);display:flex;gap:6px;">
-        <button style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:5px;cursor:pointer;color:var(--ink3);" onclick="carnetSauvegarder()">Sauvegarder</button>
-        <button style="flex:1;font-family:'Crimson Pro',serif;font-size:12px;background:none;border:1px solid var(--paper3);border-radius:4px;padding:5px;cursor:pointer;color:var(--ink3);" onclick="carnetCharger()">Ouvrir</button>
-      </div>
-    </div>
-      <div id="carnet-editor">
-        <div id="carnet-empty">
-          <p>Sélectionnez une idée ou créez-en une nouvelle</p>
-          <button class="fb fb-s" onclick="carnetNouveau()">+ Nouvelle idée</button>
-        </div>
-      </div>
-  </div>
-</div>
 
 <div id="app">
   <div id="sidebar">

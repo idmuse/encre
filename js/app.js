@@ -5364,7 +5364,7 @@ function fermerModalProfil(){
 // Envoi direct par courriel via Web3Forms (aucun backend à héberger).
 // Clé gratuite à obtenir en 30s sur https://web3forms.com/ (juste une adresse
 // courriel à entrer, pas de compte à créer) puis à coller ici.
-const WEB3FORMS_ACCESS_KEY = 'REMPLACER_PAR_VOTRE_CLE_WEB3FORMS';
+const WEB3FORMS_ACCESS_KEY = 'c1cc519c-ad7d-41ea-8891-73a0e4952bea';
 
 function ouvrirModalSuggestion(){
   document.getElementById('sugg-texte').value = '';

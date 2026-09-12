@@ -4570,6 +4570,10 @@ function fermerCarnetPage(){
   const _tb2=document.getElementById('topbar'); if(_tb2) _tb2.style.display='';
   const _ap2=document.getElementById('app'); if(_ap2) _ap2.style.display='';
   const _sb2=document.getElementById('sb'); if(_sb2) _sb2.style.display='';
+  // Sur l'accueil, ouvrirCarnetPage() retire la classe 'on' de #dashboard
+  // pour le cacher derrière le Carnet — il faut la remettre ici, sinon les
+  // deux pages restent cachées en même temps (écran blanc jusqu'au reload).
+  document.getElementById('dashboard')?.classList.add('on');
   setNavActive(null);
 }
 

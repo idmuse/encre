@@ -988,8 +988,14 @@ function ltAutoriserMot(idx){
 async function ltOuvrirPanel(){
   const list = document.getElementById('lt-panel-list');
   const ed = document.getElementById('editor');
-  const text = ed.innerText.trim();
-  if(text.length < 3){ list.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:var(--ink4);font-family:\'Crimson Pro\',serif;font-style:italic">Rien à analyser.</div>'; return; }
+  // Important : ne PAS trim() ce texte. ltSurligner/ltAppliquer parcourent
+  // l'éditeur depuis le tout début (pos=0, sans trim) pour retrouver la
+  // position d'une erreur — un texte tronqué ici décalerait tous les offsets
+  // renvoyés par Grammalecte par rapport à cette position réelle, et les
+  // corrections tombaient alors sur le mauvais passage (ex: "monde" coupé
+  // en "mon" lors du remplacement des points de suspension).
+  const text = ed.innerText;
+  if(text.trim().length < 3){ list.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:var(--ink4);font-family:\'Crimson Pro\',serif;font-style:italic">Rien à analyser.</div>'; return; }
 
   const premierChargement = !glChecker;
   list.innerHTML = '<div style="padding:10px 14px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--ink4);font-style:italic">'

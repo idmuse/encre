@@ -737,6 +737,7 @@ function edChange(){
     renderSidebar();
   }
   save(); updateWC(); setSaveStatus('pending');
+  glScheduleAutoCheck();
   // Garder le curseur visible avec de l'espace sous lui
   const sel = window.getSelection();
   if(sel?.rangeCount){
@@ -747,6 +748,17 @@ function edChange(){
       container.scrollBy({ top: rect.bottom - window.innerHeight * 0.52, behavior: 'smooth' });
     }
   }
+}
+
+// Tant que le panneau correcteur est ouvert, le texte tapé le rend
+// automatiquement obsolète (positions décalées) — on le rafraîchit tout
+// seul après une pause d'écriture, sans que l'utilisateur ait à y penser.
+let glAutoCheckTimer = null;
+function glScheduleAutoCheck(){
+  const body = document.getElementById('acc-lt');
+  if (!body || body.style.display === 'none') return;
+  clearTimeout(glAutoCheckTimer);
+  glAutoCheckTimer = setTimeout(() => { ltOuvrirPanel(); }, 1500);
 }
 
 
@@ -909,6 +921,7 @@ async function ltTogglePanel(){
     body.style.display = 'none';
     arrow.textContent = '▸';
     ltClearHighlight();
+    clearTimeout(glAutoCheckTimer);
   } else {
     body.style.display = 'flex';
     arrow.textContent = '▾';

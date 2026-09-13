@@ -1065,10 +1065,25 @@ function ltEscapeHtml(s){
 
 // Surligner le mot dans l'éditeur
 let ltHighlightEl = null;
+// Vérifie que la position mémorisée d'une erreur correspond encore au texte
+// réel de l'éditeur : l'utilisateur a pu corriger à la main depuis la
+// dernière analyse, ce qui décale toutes les positions suivantes.
+function ltPositionValide(m){
+  const attendu = (m.context?.text || '').slice(m.context?.offset || 0, (m.context?.offset || 0) + (m.context?.length || 0));
+  if (!attendu) return true;
+  const ed = document.getElementById('editor');
+  return ed.innerText.slice(m.offset, m.offset + m.length) === attendu;
+}
+
 function ltSurligner(idx){
-  ltClearHighlight();
   const m = ltMatches[idx];
   if(!m) return;
+  if(!ltPositionValide(m)){
+    flash('Texte modifié — nouvelle analyse…');
+    ltOuvrirPanel();
+    return;
+  }
+  ltClearHighlight();
 
   const ed = document.getElementById('editor');
   let pos = 0, found = false;
@@ -1112,9 +1127,14 @@ function ltClearHighlight(){
 }
 
 function ltAppliquer(idx, remplacement){
-  ltClearHighlight();
   const m = ltMatches[idx];
   if(!m) return;
+  if(!ltPositionValide(m)){
+    flash('Texte modifié — nouvelle analyse…');
+    ltOuvrirPanel();
+    return;
+  }
+  ltClearHighlight();
   const ed = document.getElementById('editor');
   let pos = 0, found = false;
   function walk(node){

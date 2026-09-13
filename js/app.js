@@ -1059,6 +1059,11 @@ async function ltOuvrirPanel(){
 
 function ltRenderPanel(){
   const list = document.getElementById('lt-panel-list');
+  // Le rafraîchissement automatique pendant l'écriture reconstruit toute la
+  // liste — sans ça, on revient systématiquement en haut du panneau à
+  // chaque pause, ce qui rend impossible de descendre la liste des fautes
+  // une à une pendant qu'on corrige.
+  const scrollAvant = list.scrollTop;
   const n = ltMatches.length;
   // lt-status retiré de l'interface
   if(!n){
@@ -1088,6 +1093,7 @@ function ltRenderPanel(){
       </div>`;
     list.appendChild(item);
   });
+  list.scrollTop = scrollAvant;
 }
 
 function ltEscapeHtml(s){

@@ -1076,6 +1076,7 @@ function ltPositionValide(m){
 }
 
 function ltSurligner(idx){
+  ltClearHighlight();
   const m = ltMatches[idx];
   if(!m) return;
   if(!ltPositionValide(m)){
@@ -1083,7 +1084,6 @@ function ltSurligner(idx){
     ltOuvrirPanel();
     return;
   }
-  ltClearHighlight();
 
   const ed = document.getElementById('editor');
   let pos = 0, found = false;
@@ -1127,6 +1127,7 @@ function ltClearHighlight(){
 }
 
 function ltAppliquer(idx, remplacement){
+  ltClearHighlight();
   const m = ltMatches[idx];
   if(!m) return;
   if(!ltPositionValide(m)){
@@ -1134,7 +1135,6 @@ function ltAppliquer(idx, remplacement){
     ltOuvrirPanel();
     return;
   }
-  ltClearHighlight();
   const ed = document.getElementById('editor');
   let pos = 0, found = false;
   function walk(node){

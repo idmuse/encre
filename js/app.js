@@ -937,7 +937,9 @@ function glGetChecker(){
 
 // Convertit une erreur Grammalecte ({nStart,nEnd,sMessage|sValue,aSuggestions})
 // vers le format déjà utilisé par ltRenderPanel/ltSurligner/ltAppliquer.
-function glToMatch(sFullText, nStart, nEnd, sMessage, aSuggestions){
+// isSpelling+sValue permettent le bouton "toujours autoriser" (mots inconnus
+// uniquement — noms de personnages, anglicismes, néologismes…).
+function glToMatch(sFullText, nStart, nEnd, sMessage, aSuggestions, isSpelling, sValue){
   const PAD = 40;
   const cStart = Math.max(0, nStart - PAD);
   const cEnd = Math.min(sFullText.length, nEnd + PAD);
@@ -953,7 +955,34 @@ function glToMatch(sFullText, nStart, nEnd, sMessage, aSuggestions){
       offset: (nStart - cStart) + prefix.length,
       length: nEnd - nStart,
     },
+    isSpelling: !!isSpelling,
+    sValue: sValue || null,
   };
+}
+
+// ── Dictionnaire personnel (mots toujours autorisés) ────────────────────────
+// Stocké localement (par appareil/navigateur, pas synchronisé dans le cloud) :
+// une fois un mot autorisé, il n'est plus jamais signalé comme inconnu.
+const GL_MOTS_AUTORISES_KEY = 'encre_mots_autorises';
+
+function glChargerMotsAutorises(){
+  try { return new Set(JSON.parse(localStorage.getItem(GL_MOTS_AUTORISES_KEY) || '[]')); }
+  catch(e){ return new Set(); }
+}
+function glSauverMotsAutorises(){
+  try { localStorage.setItem(GL_MOTS_AUTORISES_KEY, JSON.stringify([...glMotsAutorises])); }
+  catch(e){}
+}
+let glMotsAutorises = glChargerMotsAutorises();
+
+function ltAutoriserMot(idx){
+  const m = ltMatches[idx];
+  if(!m || !m.sValue) return;
+  glMotsAutorises.add(m.sValue.toLowerCase());
+  glSauverMotsAutorises();
+  ltClearHighlight();
+  ltMatches.splice(idx, 1);
+  ltRenderPanel();
 }
 
 async function ltOuvrirPanel(){
@@ -977,7 +1006,9 @@ async function ltOuvrirPanel(){
     const result = checker.verifParagraph(text, true);
     const errs = [
       ...result.lGrammarErrors.map(e => glToMatch(text, e.nStart, e.nEnd, e.sMessage, e.aSuggestions)),
-      ...result.lSpellingErrors.map(e => glToMatch(text, e.nStart, e.nEnd, 'Mot inconnu : « ' + e.sValue + ' »', e.aSuggestions)),
+      ...result.lSpellingErrors
+        .filter(e => !glMotsAutorises.has(e.sValue.toLowerCase()))
+        .map(e => glToMatch(text, e.nStart, e.nEnd, 'Mot inconnu : « ' + e.sValue + ' »', e.aSuggestions, true, e.sValue)),
     ].sort((a, b) => a.offset - b.offset);
     ltMatches = errs.filter(m => !ltIgnored.has(m.message));
     ltRenderPanel();
@@ -1015,6 +1046,7 @@ function ltRenderPanel(){
       <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:4px;">
         <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink4)">→</span>
         ${(m.replacements||[]).slice(0,3).map(r=>`<span onclick="ltAppliquer(${idx},'${r.value.replace(/'/g,"\\'")}')" style="font-family:'Crimson Pro',serif;font-size:13px;background:var(--paper2);border:1px solid var(--paper3);border-radius:3px;padding:1px 7px;cursor:pointer;color:var(--ink)">${r.value}</span>`).join('')}
+        ${m.isSpelling ? `<span onclick="ltAutoriserMot(${idx})" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink4);cursor:pointer;margin-left:4px;text-decoration:underline" title="Ne plus jamais signaler ce mot (anglicisme, nom de personnage…)">toujours autoriser</span>` : ''}
         <span onclick="ltIgnorer(${idx})" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink4);cursor:pointer;margin-left:4px;text-decoration:underline">ignorer</span>
       </div>`;
     list.appendChild(item);

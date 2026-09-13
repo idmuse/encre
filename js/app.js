@@ -998,16 +998,34 @@ function ltAutoriserMot(idx){
   ltRenderPanel();
 }
 
+// Reconstruit le texte de l'éditeur avec EXACTEMENT le même parcours DOM que
+// ltSurligner/ltAppliquer (nœuds texte + "2 caractères" à chaque <p>/<div>).
+// ed.innerText utilise les règles de rendu du navigateur, qui ne comptent pas
+// toujours pareil dès que la structure se complique (ex: les bulles texto,
+// avec plusieurs <div> imbriqués) — d'où des positions correctes à l'analyse
+// mais qui tombaient sur le mauvais passage une fois utilisées pour naviguer.
+// En partageant le même calcul des deux côtés, les deux sont toujours d'accord.
+function ltTexteEditeur(){
+  const ed = document.getElementById('editor');
+  let out = '';
+  function walk(node){
+    if(node.nodeType === 3){
+      out += node.textContent;
+    } else if(node.nodeType === 1){
+      if(['P','DIV'].includes(node.nodeName) && out.length > 0) out += '  ';
+      node.childNodes.forEach(walk);
+    }
+  }
+  walk(ed);
+  return out;
+}
+
 async function ltOuvrirPanel(){
   const list = document.getElementById('lt-panel-list');
-  const ed = document.getElementById('editor');
-  // Important : ne PAS trim() ce texte. ltSurligner/ltAppliquer parcourent
-  // l'éditeur depuis le tout début (pos=0, sans trim) pour retrouver la
-  // position d'une erreur — un texte tronqué ici décalerait tous les offsets
-  // renvoyés par Grammalecte par rapport à cette position réelle, et les
-  // corrections tombaient alors sur le mauvais passage (ex: "monde" coupé
-  // en "mon" lors du remplacement des points de suspension).
-  const text = ed.innerText;
+  // Important : ne PAS trim() ce texte — voir ltTexteEditeur() : les offsets
+  // renvoyés par Grammalecte doivent rester relatifs à ce texte tel quel, le
+  // même que ltSurligner/ltAppliquer parcourent pour localiser une erreur.
+  const text = ltTexteEditeur();
   if(text.trim().length < 3){ list.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:var(--ink4);font-family:\'Crimson Pro\',serif;font-style:italic">Rien à analyser.</div>'; return; }
 
   const premierChargement = !glChecker;
@@ -1084,8 +1102,7 @@ let ltHighlightEl = null;
 function ltPositionValide(m){
   const attendu = (m.context?.text || '').slice(m.context?.offset || 0, (m.context?.offset || 0) + (m.context?.length || 0));
   if (!attendu) return true;
-  const ed = document.getElementById('editor');
-  return ed.innerText.slice(m.offset, m.offset + m.length) === attendu;
+  return ltTexteEditeur().slice(m.offset, m.offset + m.length) === attendu;
 }
 
 function ltSurligner(idx){

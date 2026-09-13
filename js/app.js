@@ -925,6 +925,12 @@ function glGetChecker(){
   if (!glChecker) {
     if (typeof GrammarChecker === 'undefined') return null;
     glChecker = new GrammarChecker(window.GRAMMALECTE_BASE || 'vendor/grammalecte', undefined, 'fr');
+    // Désactive la correction "apostrophe droite -> typographique" : la quasi
+    // totalité des manuscrits utilisent l'apostrophe droite (clavier standard),
+    // ce qui noyait le reste des vraies fautes sous des dizaines de faux
+    // positifs. La conversion typographique se fait de toute façon à la mise
+    // en page (Enlumineur), pas besoin de la signaler pendant l'écriture.
+    try { glChecker.setGceOption('apos', false); } catch(e) { console.error(e); }
   }
   return glChecker;
 }
@@ -935,12 +941,18 @@ function glToMatch(sFullText, nStart, nEnd, sMessage, aSuggestions){
   const PAD = 40;
   const cStart = Math.max(0, nStart - PAD);
   const cEnd = Math.min(sFullText.length, nEnd + PAD);
+  const prefix = cStart > 0 ? '… ' : '';
+  const suffix = cEnd < sFullText.length ? ' …' : '';
   return {
     message: sMessage,
     offset: nStart,
     length: nEnd - nStart,
     replacements: (aSuggestions||[]).map(s => ({value: s})),
-    context: { text: sFullText.slice(cStart, cEnd), offset: nStart - cStart, length: nEnd - nStart },
+    context: {
+      text: prefix + sFullText.slice(cStart, cEnd) + suffix,
+      offset: (nStart - cStart) + prefix.length,
+      length: nEnd - nStart,
+    },
   };
 }
 
@@ -994,12 +1006,12 @@ function ltRenderPanel(){
     const ctx = m.context?.text||'';
     const co = m.context?.offset||0;
     const cl = m.context?.length||0;
-    const mot = ctx.slice(co, co+cl);
+    const avant = ltEscapeHtml(ctx.slice(0, co));
+    const mot   = ltEscapeHtml(ctx.slice(co, co+cl)) || '·';
+    const apres = ltEscapeHtml(ctx.slice(co+cl));
     item.innerHTML = `
-      <div onclick="ltSurligner(${idx})" style="font-family:'Crimson Pro',serif;font-size:14px;color:var(--ink);margin-bottom:3px;">
-        <span style="color:var(--accent);font-style:italic">${mot}</span>
-        <span style="color:var(--ink4);font-size:12px;"> — ${m.message.length>60?m.message.substring(0,60)+'…':m.message}</span>
-      </div>
+      <div onclick="ltSurligner(${idx})" style="font-family:'Crimson Pro',serif;font-size:14px;color:var(--ink4);line-height:1.5;">${avant}<span style="color:var(--accent);font-weight:600;background:rgba(139,58,42,.12);border-radius:2px;padding:0 1px;">${mot}</span>${apres}</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:12px;color:var(--ink4);font-style:italic;margin:3px 0 4px;">${m.message.length>90?m.message.substring(0,90)+'…':m.message}</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:4px;">
         <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink4)">→</span>
         ${(m.replacements||[]).slice(0,3).map(r=>`<span onclick="ltAppliquer(${idx},'${r.value.replace(/'/g,"\\'")}')" style="font-family:'Crimson Pro',serif;font-size:13px;background:var(--paper2);border:1px solid var(--paper3);border-radius:3px;padding:1px 7px;cursor:pointer;color:var(--ink)">${r.value}</span>`).join('')}
@@ -1007,6 +1019,10 @@ function ltRenderPanel(){
       </div>`;
     list.appendChild(item);
   });
+}
+
+function ltEscapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // Surligner le mot dans l'éditeur

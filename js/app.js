@@ -912,32 +912,64 @@ async function ltTogglePanel(){
   }
 }
 
+// ── Grammalecte (correcteur local, remplace LanguageTool) ──────────────────
+// Instance unique, créée au premier usage seulement (le premier appel charge
+// le dictionnaire ~4 Mo une fois ; les suivants sont instantanés).
+let glChecker = null;
+
+function glGetChecker(){
+  if (!glChecker) {
+    if (typeof GrammarChecker === 'undefined') return null;
+    glChecker = new GrammarChecker(window.GRAMMALECTE_BASE || 'vendor/grammalecte', undefined, 'fr');
+  }
+  return glChecker;
+}
+
+// Convertit une erreur Grammalecte ({nStart,nEnd,sMessage|sValue,aSuggestions})
+// vers le format déjà utilisé par ltRenderPanel/ltSurligner/ltAppliquer.
+function glToMatch(sFullText, nStart, nEnd, sMessage, aSuggestions){
+  const PAD = 40;
+  const cStart = Math.max(0, nStart - PAD);
+  const cEnd = Math.min(sFullText.length, nEnd + PAD);
+  return {
+    message: sMessage,
+    offset: nStart,
+    length: nEnd - nStart,
+    replacements: (aSuggestions||[]).map(s => ({value: s})),
+    context: { text: sFullText.slice(cStart, cEnd), offset: nStart - cStart, length: nEnd - nStart },
+  };
+}
+
 async function ltOuvrirPanel(){
   const list = document.getElementById('lt-panel-list');
-  list.innerHTML = '<div style="padding:10px 14px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--ink4);font-style:italic">Analyse…</div>';
-  setLtStatus('checking');
-
   const ed = document.getElementById('editor');
   const text = ed.innerText.trim();
   if(text.length < 3){ list.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:var(--ink4);font-family:\'Crimson Pro\',serif;font-style:italic">Rien à analyser.</div>'; return; }
 
+  const premierChargement = !glChecker;
+  list.innerHTML = '<div style="padding:10px 14px;font-family:\'Crimson Pro\',serif;font-size:13px;color:var(--ink4);font-style:italic">'
+    + (premierChargement ? 'Chargement du correcteur (une fois)…' : 'Analyse…') + '</div>';
+  setLtStatus('checking');
+
+  // Laisse le message ci-dessus s'afficher avant le calcul, potentiellement
+  // bloquant au tout premier chargement (chargement synchrone du dictionnaire).
+  await new Promise(r => setTimeout(r, 30));
+
   try {
-    const res = await fetch('https://api.languagetool.org/v2/check', {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({
-        language: 'fr', text,
-        disabledCategories: 'STYLE,PUNCTUATION,CASING,REDUNDANCY,COLLOQUIALISMS',
-        disabledRules: 'WHITESPACE_RULE,CONSECUTIVE_SPACES,FRENCH_WHITESPACE,TOO_LONG_SENTENCE,UPPERCASE_SENTENCE_START,WORD_REPEAT_RULE,FR_AGREEMENT_POSTPONED_VERB,ACCORD_SUJET_VERBE'
-      })
-    });
-    const data = await res.json();
-    ltMatches = (data.matches||[]).filter(m=>!ltIgnored.has(m.message));
+    const checker = glGetChecker();
+    if (!checker) throw new Error('Grammalecte non chargé');
+    const result = checker.verifParagraph(text, true);
+    const errs = [
+      ...result.lGrammarErrors.map(e => glToMatch(text, e.nStart, e.nEnd, e.sMessage, e.aSuggestions)),
+      ...result.lSpellingErrors.map(e => glToMatch(text, e.nStart, e.nEnd, 'Mot inconnu : « ' + e.sValue + ' »', e.aSuggestions)),
+    ].sort((a, b) => a.offset - b.offset);
+    ltMatches = errs.filter(m => !ltIgnored.has(m.message));
     ltRenderPanel();
     setLtStatus('ok');
   } catch(e){
     list.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:var(--accent);font-family:\'Crimson Pro\',serif">Indisponible.</div>';
     setLtStatus('offline');
+    console.error('Grammalecte:', e);
   }
 }
 
@@ -3359,9 +3391,9 @@ function afficherBanniereMAJ(reg){
 function setLtStatus(s){
   const el = document.getElementById('lt-badge');
   if(!el) return;
-  if(s==='ok')     { el.style.color='#4a8050'; el.title='LanguageTool actif'; }
-  else if(s==='checking'){ el.style.color='#c4a87a'; el.title='LanguageTool — vérification…'; }
-  else             { el.style.color='#6b5a4e'; el.title='LanguageTool — hors ligne'; }
+  if(s==='ok')     { el.style.color='#4a8050'; el.title='Grammalecte actif (local, hors ligne)'; }
+  else if(s==='checking'){ el.style.color='#c4a87a'; el.title='Grammalecte — analyse…'; }
+  else             { el.style.color='#6b5a4e'; el.title='Grammalecte — indisponible'; }
 }
 function setNavActive(id){
   document.querySelectorAll('.tb-nav').forEach(b=>b.classList.remove('active'));

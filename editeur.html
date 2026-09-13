@@ -36,7 +36,7 @@
   <a href="guide.html" target="_blank" title="Guide d'utilisation" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6b5a4e;text-decoration:none;padding:2px 7px;border:1px solid #3a3028;border-radius:50%;line-height:1;cursor:pointer;margin-right:4px;transition:color .15s" onmouseover="this.style.color='#c4a882'" onmouseout="this.style.color='#6b5a4e'">?</a>
   <button class="theme-toggle-btn tb-btn" onclick="toggleTheme()" title="Mode nuit" style="font-size:14px;padding:2px 8px;">🌙</button>
   <span id="save-status" title="Statut sauvegarde" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;cursor:default">☁ ●</span>
-  <span id="lt-badge" title="LanguageTool" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;cursor:default">LT ●</span>
+  <span id="lt-badge" title="Grammalecte" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b5a4e;cursor:default">GL ●</span>
   <input id="projet-nom" value="Mon Roman" onchange="P.titre=this.value" style="display:none">
   <input type="file" id="fi" accept=".encre" style="display:none" onchange="ouvrir(this)">
   <input type="file" id="fi-docx" accept=".docx" style="display:none" onchange="lireDocx(this)">
@@ -356,6 +356,29 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Correcteur grammatical Grammalecte (GPLv3, voir vendor/grammalecte/LICENSE-GPLv3.txt) —
+     entièrement local, aucune donnée envoyée en ligne. Remplace LanguageTool. -->
+<script>window.GRAMMALECTE_BASE = 'vendor/grammalecte';</script>
+<script src="vendor/grammalecte/api.js"></script>
+<script src="vendor/grammalecte/graphspell/helpers.js"></script>
+<script src="vendor/grammalecte/graphspell/char_player.js"></script>
+<script src="vendor/grammalecte/graphspell/tokenizer.js"></script>
+<script src="vendor/grammalecte/graphspell/spellchecker.js"></script>
+<script src="vendor/grammalecte/graphspell/str_transform.js"></script>
+<script src="vendor/grammalecte/graphspell/ibdawg.js"></script>
+<script src="vendor/grammalecte/fr/conj.js"></script>
+<script src="vendor/grammalecte/fr/mfsp.js"></script>
+<script src="vendor/grammalecte/fr/phonet.js"></script>
+<script src="vendor/grammalecte/fr/gc_options.js"></script>
+<script src="vendor/grammalecte/fr/gc_engine.js"></script>
+<script src="vendor/grammalecte/fr/gc_functions.js"></script>
+<script src="vendor/grammalecte/fr/gc_rules.js"></script>
+<script src="vendor/grammalecte/fr/gc_rules_graph.js"></script>
+<script src="vendor/grammalecte/fr/cregex.js"></script>
+<script src="vendor/grammalecte/text.js"></script>
+<script src="vendor/grammalecte/fr/textformatter.js"></script>
+
 <script src="js/app.js"></script>
 <script src="js/stats.js"></script>
 <!-- projet chargé depuis sessionStorage dans app.js -->

@@ -2761,10 +2761,15 @@ async function exportPdf(){
         const align=styleAlign==='center'?'center':styleAlign==='right'?'right':'justify';
         // Repère (date, narrateur…) — soit marqué en doré via marquerRepere(),
         // soit déjà entièrement en italique (convention courante pour ce
-        // genre de ligne, sans clic supplémentaire à faire) : jamais de
-        // lettrine dessus, même s'il tombe en tout premier.
+        // genre de ligne, sans clic supplémentaire à faire), soit détecté
+        // automatiquement (ligne courte sans ponctuation finale, ex. un
+        // simple prénom) pour ne pas obliger à marquer chaque occurrence :
+        // jamais de lettrine dessus, même s'il tombe en tout premier.
+        const motsTexte=texte.split(/\s+/).filter(Boolean);
+        const etiquetteCourte=motsTexte.length<=4 && texte.length<=30 && !/[.!?…»"']$/.test(texte);
         const estRepere=/184,\s*137,\s*42|#?b8892a/i.test(n.innerHTML)
-          || (segs.length>0 && segs.every(s=>s.italic || !s.t.trim()));
+          || (segs.length>0 && segs.every(s=>s.italic || !s.t.trim()))
+          || etiquetteCourte;
         const lettrine=premierParaTexte && align==='justify' && !estRepere;
         paras.push({segs, align, lettrine});
         if(lettrine) premierParaTexte=false;

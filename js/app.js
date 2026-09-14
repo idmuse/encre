@@ -2707,19 +2707,35 @@ async function exportPdf(){
         return;
       }
 
-      // Chapitre (niveau 2) — on affiche ch.titre tel quel comme en-tête
+      // Chapitre (niveau 2) — en-tête en 3 lignes empilées, chacune facultative
+      // sauf la numérotation : « CHAPITRE N » (toujours, automatique) puis, si
+      // remplis, le titre du chapitre (champ ch.titre — un vrai titre, plus la
+      // numérotation qu'il n'a donc plus besoin de porter lui-même) et le
+      // narrateur (champ ch.narrateur). Aucun des deux n'est jamais deviné
+      // dans le texte du corps.
       // (page impaire, sans en-tête courant — pageImpaire() plus haut s'en charge).
       chapNum++;
       numPage();
-      doc.setFont(F_TITRE,'normal'); doc.setFontSize(19); doc.setTextColor(...OR);
-      doc.text((ch.titre||String(chapNum)), W/2, mHaut+18+ESPACE_HAUT_CHAP, {align:'center'});
+      let yEntete=mHaut+16+ESPACE_HAUT_CHAP;
+      doc.setFont(F_CORPS,'normal'); doc.setFontSize(10); doc.setCharSpace(1);
+      doc.setTextColor(...OR);
+      doc.text('CHAPITRE '+chapNum, W/2, yEntete, {align:'center'});
+      doc.setCharSpace(0);
+      yEntete+=9;
+      const titre=(ch.titre||'').trim();
+      if(titre){
+        doc.setFont(F_TITRE,'normal'); doc.setFontSize(19); doc.setTextColor(...ENCRE);
+        doc.text(titre, W/2, yEntete, {align:'center'});
+        yEntete+=10;
+      }
       doc.setTextColor(...ENCRE);
       // Narrateur/POV — champ dédié du chapitre, jamais deviné dans le texte :
       // affiché seulement s'il est rempli, jamais rien d'ajouté sinon.
       const narrateur=(ch.narrateur||'').trim();
       if(narrateur){
         doc.setFont(F_TITRE,'italic'); doc.setFontSize(12);
-        doc.text(narrateur, W/2, mHaut+28+ESPACE_HAUT_CHAP, {align:'center'});
+        doc.text(narrateur, W/2, yEntete, {align:'center'});
+        yEntete+=8;
       }
       if(!ch.contenu) return;
 
@@ -2792,7 +2808,7 @@ async function exportPdf(){
       });
 
       doc.setFont(F_CORPS,'normal'); doc.setFontSize(11);
-      let y=mHaut+40+ESPACE_HAUT_CHAP+(narrateur?8:0), first=true;
+      let y=yEntete+13, first=true;
 
       // Écrire une ligne avec segments stylisés, justifiée ou non
       function ecrireLigne(segsDeLigne, xBase, largeurDispo, justifier){

@@ -2684,8 +2684,9 @@ async function exportPdf(){
       if(niv===1){
         // Page de partie — titre + sous-titre éventuel
         numPage();
-        doc.setFont(F_TITRE,'normal'); doc.setFontSize(22);
+        doc.setFont(F_TITRE,'normal'); doc.setFontSize(22); doc.setTextColor(...OR);
         doc.text((ch.titre||'').toUpperCase(), W/2, H/3, {align:'center'});
+        doc.setTextColor(...ENCRE);
         if(ch.contenu){
           const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);
           const st=tmp.innerText.trim();
@@ -2701,8 +2702,9 @@ async function exportPdf(){
       // (page impaire, sans en-tête courant — pageImpaire() plus haut s'en charge).
       chapNum++;
       numPage();
-      doc.setFont(F_TITRE,'normal'); doc.setFontSize(19);
+      doc.setFont(F_TITRE,'normal'); doc.setFontSize(19); doc.setTextColor(...OR);
       doc.text((ch.titre||String(chapNum)), W/2, mHaut+18+ESPACE_HAUT_CHAP, {align:'center'});
+      doc.setTextColor(...ENCRE);
       if(!ch.contenu) return;
 
       const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);

@@ -606,6 +606,7 @@ function loadChap(i){
   // Reconstruire les contrôles des textos
   repairerTextos();
   document.getElementById('chap-ti').value=c.titre;
+  document.getElementById('chap-narr').value=c.narrateur||'';
   document.getElementById('chap-n').textContent = (i+1)+'.';
   document.getElementById('s-chap').textContent=c.titre;
   // Scroll en haut sur changement de chapitre
@@ -748,6 +749,10 @@ function ajouterChap(){
 }
 
 function titreChap(v){ P.chapitres[chapI].titre=v; renderSidebar(); document.getElementById('s-chap').textContent=v; }
+
+// Champ dédié (pas deviné dans le texte) pour le narrateur/POV du chapitre —
+// affiché sous le titre à l'export PDF seulement s'il est rempli.
+function narrateurChap(v){ P.chapitres[chapI].narrateur=v; }
 
 function edChange(){
   const ch = P.chapitres[chapI];
@@ -2709,6 +2714,13 @@ async function exportPdf(){
       doc.setFont(F_TITRE,'normal'); doc.setFontSize(19); doc.setTextColor(...OR);
       doc.text((ch.titre||String(chapNum)), W/2, mHaut+18+ESPACE_HAUT_CHAP, {align:'center'});
       doc.setTextColor(...ENCRE);
+      // Narrateur/POV — champ dédié du chapitre, jamais deviné dans le texte :
+      // affiché seulement s'il est rempli, jamais rien d'ajouté sinon.
+      const narrateur=(ch.narrateur||'').trim();
+      if(narrateur){
+        doc.setFont(F_TITRE,'italic'); doc.setFontSize(12);
+        doc.text(narrateur, W/2, mHaut+28+ESPACE_HAUT_CHAP, {align:'center'});
+      }
       if(!ch.contenu) return;
 
       const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);
@@ -2780,7 +2792,7 @@ async function exportPdf(){
       });
 
       doc.setFont(F_CORPS,'normal'); doc.setFontSize(11);
-      let y=mHaut+40+ESPACE_HAUT_CHAP, first=true;
+      let y=mHaut+40+ESPACE_HAUT_CHAP+(narrateur?8:0), first=true;
 
       // Écrire une ligne avec segments stylisés, justifiée ou non
       function ecrireLigne(segsDeLigne, xBase, largeurDispo, justifier){

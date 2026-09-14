@@ -2722,9 +2722,18 @@ async function exportPdf(){
       chapNum++;
       numPage();
       let yEntete=mHaut+16+ESPACE_HAUT_CHAP;
-      doc.setFont(F_CORPS,'normal'); doc.setFontSize(10); doc.setCharSpace(1);
+      doc.setFont(F_CORPS,'normal'); doc.setFontSize(10);
       doc.setTextColor(...OR);
-      doc.text((ch.titre||('Chapitre '+chapNum)).toUpperCase(), W/2, yEntete, {align:'center'});
+      // {align:'center'} de jsPDF ignore le setCharSpace() actif pour son
+      // calcul de centrage (il ne mesure que la largeur "normale" du texte,
+      // sans l'espacement des lettres) — le texte rendu se retrouve décalé.
+      // On calcule donc la position à la main : largeur normale + l'espace
+      // ajouté par le charSpace, une fois par caractère.
+      const labelChap=(ch.titre||('Chapitre '+chapNum)).toUpperCase();
+      const CHAR_SPACE=1;
+      const largeurLabel=doc.getTextWidth(labelChap)+CHAR_SPACE*(labelChap.length-1);
+      doc.setCharSpace(CHAR_SPACE);
+      doc.text(labelChap, W/2-largeurLabel/2, yEntete);
       doc.setCharSpace(0);
       yEntete+=9;
       const titreChap=(ch.titreChap||'').trim();

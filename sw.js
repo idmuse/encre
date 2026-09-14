@@ -1,10 +1,11 @@
 // Service Worker — Encrier
-// v8 : stratégie "réseau d'abord" pour les pages et le code de l'appli,
-// avec repli sur le cache si hors ligne. La v7 servait tout "cache d'abord",
-// ce qui pouvait figer des appareils sur une vieille version même après
-// un déploiement — corrigé ici (voir aussi le nettoyage des vieux caches
-// dans 'activate', déjà en place).
-const CACHE = 'encre-v8';
+// v9 : ajout des polices d'export PDF (fonts/*.ttf) et des scripts de
+// césure (js/vendor/*) à la précharge, pour que l'export PDF marche aussi
+// hors ligne. v8 : stratégie "réseau d'abord" pour les pages et le code de
+// l'appli, avec repli sur le cache si hors ligne. La v7 servait tout
+// "cache d'abord", ce qui pouvait figer des appareils sur une vieille
+// version même après un déploiement.
+const CACHE = 'encre-v9';
 
 const ASSETS = [
   './',
@@ -22,7 +23,17 @@ const ASSETS = [
   './css/dark.css',
   './js/app.js',
   './js/stats.js',
-  './js/theme.js'
+  './js/theme.js',
+  './js/vendor/hypher.js',
+  './js/vendor/hyphenation-fr.js',
+  './fonts/CrimsonPro-Regular.ttf',
+  './fonts/CrimsonPro-Italic.ttf',
+  './fonts/CrimsonPro-Bold.ttf',
+  './fonts/CrimsonPro-BoldItalic.ttf',
+  './fonts/PlayfairDisplay-Regular.ttf',
+  './fonts/PlayfairDisplay-Italic.ttf',
+  './fonts/PlayfairDisplay-Bold.ttf',
+  './fonts/PlayfairDisplay-BoldItalic.ttf'
 ];
 
 const CDN = [

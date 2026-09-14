@@ -2521,17 +2521,66 @@ function exportTxt(){
 
 // ── Export DOCX (sans CDN externe, via JSZip) ─────────────
 // ── EXPORT PDF KDP 6×9 ─────────────────────────────────────
+// Polices maison (Crimson Pro / Playfair Display) embarquées à la volée —
+// fichiers .ttf chargés depuis fonts/, jamais dans app.js (poids).
+const PDF_POLICES = [
+  {fichier:'CrimsonPro-Regular.ttf', nom:'CrimsonPro', style:'normal'},
+  {fichier:'CrimsonPro-Italic.ttf', nom:'CrimsonPro', style:'italic'},
+  {fichier:'CrimsonPro-Bold.ttf', nom:'CrimsonPro', style:'bold'},
+  {fichier:'CrimsonPro-BoldItalic.ttf', nom:'CrimsonPro', style:'bolditalic'},
+  {fichier:'PlayfairDisplay-Regular.ttf', nom:'PlayfairDisplay', style:'normal'},
+  {fichier:'PlayfairDisplay-Italic.ttf', nom:'PlayfairDisplay', style:'italic'},
+  {fichier:'PlayfairDisplay-Bold.ttf', nom:'PlayfairDisplay', style:'bold'},
+  {fichier:'PlayfairDisplay-BoldItalic.ttf', nom:'PlayfairDisplay', style:'bolditalic'},
+];
+function arrayBufferVersBase64(buf){
+  let binaire=''; const octets=new Uint8Array(buf); const TAILLE_BLOC=0x8000;
+  for(let i=0;i<octets.length;i+=TAILLE_BLOC) binaire+=String.fromCharCode.apply(null, octets.subarray(i,i+TAILLE_BLOC));
+  return btoa(binaire);
+}
+async function chargerPolicesPdf(doc){
+  const buffers=await Promise.all(PDF_POLICES.map(p=>fetch('fonts/'+p.fichier).then(r=>{
+    if(!r.ok) throw new Error('Police introuvable : '+p.fichier);
+    return r.arrayBuffer();
+  })));
+  PDF_POLICES.forEach((p,i)=>{
+    doc.addFileToVFS(p.fichier, arrayBufferVersBase64(buffers[i]));
+    doc.addFont(p.fichier, p.nom, p.style);
+  });
+}
+// Petite étoile à 4 branches dessinée en vectoriel (aucune police n'a ce
+// glyphe) — utilisée sur la page de titre et pour les pauses de scène.
+function etoilePdf(doc, cx, cy, r){
+  const w=r*0.28;
+  doc.setFillColor(184,137,42);
+  doc.triangle(cx,cy-r, cx-w,cy, cx+w,cy, 'F');
+  doc.triangle(cx,cy+r, cx-w,cy, cx+w,cy, 'F');
+  doc.triangle(cx-r,cy, cx,cy-w, cx,cy+w, 'F');
+  doc.triangle(cx+r,cy, cx,cy-w, cx,cy+w, 'F');
+}
+
 async function exportPdf(){
   save();
   const btn = document.getElementById('btn-pdf');
   btn.textContent = '⟳ PDF…'; btn.disabled = true;
   flash('Génération PDF…');
 
+  const F_CORPS='CrimsonPro', F_TITRE='PlayfairDisplay';
+  const OR=[184,137,42], ENCRE=[26,20,16], ACCENT=[139,58,42];
+
   try {
     const { jsPDF } = window.jspdf;
     const W = 152.4, H = 228.6; // 6×9" en mm
     const mGout = 19.05, mExt = 12.7, mHaut = 19.05, mBas = 22.23;
+    const LH = 5.8; // interligne resserré (était 6.5)
+    const ESPACE_HAUT_CHAP = 26; // respiration ajoutée avant le titre de chapitre
     const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:[W,H] });
+    await chargerPolicesPdf(doc);
+
+    // Césure française (Hypher, motifs Liang/TeX) — absente si les scripts
+    // vendor n'ont pas pu charger, la mise en page reste correcte sans elle.
+    const hyphenatorFr = (typeof window.Hypher!=='undefined' && typeof window.hyphenationFr!=='undefined')
+      ? new window.Hypher(window.hyphenationFr) : null;
 
     const titre = P.titre || 'Roman';
     const auteur = P.auteur || '';
@@ -2543,9 +2592,9 @@ async function exportPdf(){
 
     function numPage(){
       if(pageNum > 2){
-        doc.setFont('Times','normal'); doc.setFontSize(9); doc.setTextColor(80);
+        doc.setFont(F_CORPS,'normal'); doc.setFontSize(9); doc.setTextColor(120,105,90);
         doc.text(String(pageNum-2), W/2, H-8, {align:'center'});
-        doc.setTextColor(0);
+        doc.setTextColor(...ENCRE);
       }
     }
 
@@ -2559,19 +2608,47 @@ async function exportPdf(){
 
     // Page 1 — titre
     pageNum=1;
-    doc.setFont('Times','italic'); doc.setFontSize(28);
-    doc.text(titre, W/2, 80, {align:'center'});
-    doc.setFont('Times','normal'); doc.setFontSize(12);
-    doc.text(auteur, W/2, 95, {align:'center'});
+    etoilePdf(doc, W/2, 62, 2.6);
+    doc.setFont(F_TITRE,'italic'); doc.setFontSize(26); doc.setTextColor(...ENCRE);
+    const lignesTitre=doc.splitTextToSize(titre, tW()-10);
+    let yTitre=84;
+    lignesTitre.forEach(l=>{ doc.text(l, W/2, yTitre, {align:'center'}); yTitre+=10; });
+    doc.setDrawColor(...OR); doc.setLineWidth(0.3);
+    doc.line(W/2-11, yTitre+2, W/2+11, yTitre+2);
+    doc.setFont(F_CORPS,'normal'); doc.setFontSize(11); doc.setTextColor(107,90,78);
+    doc.text((auteur||'').toUpperCase(), W/2, yTitre+11, {align:'center'});
+    doc.setFont(F_CORPS,'normal'); doc.setFontSize(8); doc.setTextColor(156,136,120);
+    doc.text('ROMAN', W/2, H-30, {align:'center'});
+    doc.setTextColor(...ENCRE);
 
     // Page 2 — infos
     nouvellePage();
-    doc.setFont('Times','bold'); doc.setFontSize(12);
-    doc.text(titre, W/2, mHaut+10, {align:'center'});
-    doc.setFont('Times','normal'); doc.setFontSize(11);
-    doc.text(auteur, W/2, mHaut+20, {align:'center'});
-    if(P.genre||P.annee) doc.text(`${P.genre||''}${P.genre&&P.annee?' · ':''}${P.annee||''}`, W/2, mHaut+28, {align:'center'});
+    doc.setFont(F_TITRE,'bold'); doc.setFontSize(13);
+    doc.text(titre, W/2, mHaut+14, {align:'center'});
+    doc.setFont(F_CORPS,'normal'); doc.setFontSize(11); doc.setTextColor(107,90,78);
+    doc.text(auteur, W/2, mHaut+24, {align:'center'});
+    if(P.genre||P.annee) doc.text(`${P.genre||''}${P.genre&&P.annee?' · ':''}${P.annee||''}`, W/2, mHaut+32, {align:'center'});
+    doc.setTextColor(...ENCRE);
     numPage();
+
+    // Découpe un mot trop long en tentant une césure française ; renvoie
+    // {debut, fin} (avec le trait d'union) si une coupure tient, sinon null.
+    function tenterCesure(mot, style, largeurDispo){
+      if(!hyphenatorFr || mot.length<5 || largeurDispo<8) return null;
+      if(!/^[\p{L}\p{M}'-]+$/u.test(mot)) return null;
+      let syllabes;
+      try{ syllabes=hyphenatorFr.hyphenate(mot); } catch(e){ return null; }
+      if(!syllabes || syllabes.length<2) return null;
+      doc.setFont(F_CORPS, style);
+      let meilleur=null, acc='';
+      for(let i=0;i<syllabes.length-1;i++){
+        acc+=syllabes[i];
+        const essai=acc+'-';
+        if(doc.getTextWidth(essai)<=largeurDispo+0.01) meilleur={debut:essai, fin:mot.slice(acc.length)};
+        else break;
+      }
+      return meilleur;
+    }
 
     // Chapitres
     let chapNum = 0;
@@ -2582,13 +2659,13 @@ async function exportPdf(){
       if(niv===1){
         // Page de partie — titre + sous-titre éventuel
         numPage();
-        doc.setFont('Times','normal'); doc.setFontSize(22);
+        doc.setFont(F_TITRE,'normal'); doc.setFontSize(22);
         doc.text((ch.titre||'').toUpperCase(), W/2, H/3, {align:'center'});
         if(ch.contenu){
           const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);
           const st=tmp.innerText.trim();
           if(st && st.length<120){
-            doc.setFont('Times','italic'); doc.setFontSize(14);
+            doc.setFont(F_TITRE,'italic'); doc.setFontSize(14);
             doc.text(doc.splitTextToSize(st,tW()), W/2, H/3+14, {align:'center'});
           }
         }
@@ -2596,13 +2673,18 @@ async function exportPdf(){
       }
 
       // Chapitre (niveau 2) — on affiche ch.titre tel quel comme en-tête
+      // (page impaire, sans en-tête courant — pageImpaire() plus haut s'en charge).
       chapNum++;
       numPage();
-      doc.setFont('Times','normal'); doc.setFontSize(18);
-      doc.text((ch.titre||String(chapNum)), W/2, mHaut+18, {align:'center'});
+      doc.setFont(F_TITRE,'normal'); doc.setFontSize(19);
+      doc.text((ch.titre||String(chapNum)), W/2, mHaut+18+ESPACE_HAUT_CHAP, {align:'center'});
       if(!ch.contenu) return;
 
       const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);
+      //   (espace fine insécable) n'existe pas dans les polices embarquées —
+      // la coupure de ligne est de toute façon gérée à la main ici, donc sa
+      // largeur ne joue aucun rôle ; on la ramène à une espace normale.
+      tmp.innerHTML = tmp.innerHTML.split(' ').join(' ');
 
       // Extraire les segments avec leur style depuis un nœud DOM
       function extraireSegments(noeud){
@@ -2622,26 +2704,37 @@ async function exportPdf(){
         return segs;
       }
 
-      // Construire la liste de paragraphes, chacun = {segs, align} ou {type:'texto', cote, nom, msg}
+      // Construire la liste de paragraphes : {segs, align, lettrine} normal,
+      // {type:'texto', cote, nom, msg} pour une bulle, {type:'sceneBreak'}
+      // pour un "* * *" — le tout premier paragraphe de texte est marqué
+      // pour recevoir la lettrine.
       const paras=[];
+      let premierParaTexte=true;
       tmp.childNodes.forEach(n=>{
         if(n.classList?.contains('texto-bloc')){
           const cote=n.getAttribute('data-texto')||'gauche';
           const nom=(n.querySelector('.texto-nom')?.innerText||'').trim();
           const msg=(n.querySelector('.texto-msg')?.innerText||'').trim();
           if(msg) paras.push({type:'texto', cote, nom, msg});
+          premierParaTexte=false;
           return;
         }
         const segs=extraireSegments(n);
         const texte=segs.map(s=>s.t).join('').trim();
         if(!texte) return;
+        if(/^\*{2,}$/.test(texte.replace(/\s+/g,''))){
+          paras.push({type:'sceneBreak'});
+          premierParaTexte=false;
+          return;
+        }
         const styleAlign=(n.style?.textAlign||'').toLowerCase();
         const align=styleAlign==='center'?'center':styleAlign==='right'?'right':'justify';
-        paras.push({segs, align});
+        paras.push({segs, align, lettrine: premierParaTexte && align==='justify'});
+        premierParaTexte=false;
       });
 
-      doc.setFont('Times','normal'); doc.setFontSize(11);
-      let y=mHaut+40, first=true;
+      doc.setFont(F_CORPS,'normal'); doc.setFontSize(11);
+      let y=mHaut+40+ESPACE_HAUT_CHAP, first=true;
 
       // Écrire une ligne avec segments stylisés, justifiée ou non
       function ecrireLigne(segsDeLigne, xBase, largeurDispo, justifier){
@@ -2665,12 +2758,12 @@ async function exportPdf(){
         if(justifier && mots.length>1){
           // Calculer largeur totale des mots
           let largeurMots=0;
-          mots.forEach(m=>{ doc.setFont('Times',m.style); largeurMots+=doc.getTextWidth(m.mot); });
+          mots.forEach(m=>{ doc.setFont(F_CORPS,m.style); largeurMots+=doc.getTextWidth(m.mot); });
           const espaceTotal=largeurDispo-largeurMots;
           const espaceParGap=espaceTotal/(mots.length-1);
           let x=xBase;
           mots.forEach((m,mi)=>{
-            doc.setFont('Times',m.style);
+            doc.setFont(F_CORPS,m.style);
             doc.text(m.mot, x, y);
             x+=doc.getTextWidth(m.mot);
             if(mi<mots.length-1) x+=espaceParGap;
@@ -2678,27 +2771,41 @@ async function exportPdf(){
         } else {
           let x=xBase;
           mots.forEach(m=>{
-            doc.setFont('Times',m.style);
+            doc.setFont(F_CORPS,m.style);
             doc.text(m.mot, x, y);
             x+=doc.getTextWidth(m.mot);
             if(m.apresEspace){
-              doc.setFont('Times','normal');
+              doc.setFont(F_CORPS,'normal');
               x+=doc.getTextWidth(' ')*m.apresEspace;
             }
           });
         }
-        doc.setFont('Times','normal');
+        doc.setFont(F_CORPS,'normal');
       }
 
-      // Découper un paragraphe (segments) en lignes en tenant compte des styles
-      function decouperEnLignes(segs, largeur){
+      // Découper un paragraphe (segments) en lignes, avec césure sur les mots
+      // qui débordent. largeurPremiereLigne : largeur réduite pour la toute
+      // première ligne (place faite à une lettrine), sinon identique à largeur.
+      function decouperEnLignes(segs, largeur, largeurPremiereLigne){
         const lignes=[];
         let ligneCourante=[], largeurCourante=0, premierMot=true;
-        function ajouterMot(mot, style, dernier){
-          doc.setFont('Times',style);
+        function largeurLigneCourante(){ return (lignes.length===0 && largeurPremiereLigne!=null) ? largeurPremiereLigne : largeur; }
+        function ajouterMot(mot, style){
+          doc.setFont(F_CORPS,style);
           const lMot=doc.getTextWidth(mot);
           const lEspace=premierMot?0:doc.getTextWidth(' ');
-          if(!premierMot && largeurCourante+lEspace+lMot>largeur+0.01){
+          const largeurLigne=largeurLigneCourante();
+          if(!premierMot && largeurCourante+lEspace+lMot>largeurLigne+0.01){
+            const espaceRestant=largeurLigne-largeurCourante-lEspace;
+            const casse=tenterCesure(mot, style, espaceRestant);
+            if(casse){
+              ligneCourante.push({t:casse.debut, style, space:true});
+              lignes.push({segs:ligneCourante, fin:false});
+              ligneCourante=[{t:casse.fin,style}];
+              largeurCourante=doc.getTextWidth(casse.fin);
+              premierMot=false;
+              return;
+            }
             lignes.push({segs:ligneCourante, fin:false});
             ligneCourante=[{t:mot,style}];
             largeurCourante=lMot;
@@ -2719,7 +2826,7 @@ async function exportPdf(){
               // espace entre mots — géré dans ajouterMot
             } else {
               // Peut contenir des espaces internes ? Non après split
-              ajouterMot(tok, style, false);
+              ajouterMot(tok, style);
             }
           });
         });
@@ -2730,11 +2837,25 @@ async function exportPdf(){
       }
 
       paras.forEach(para=>{
+        // ── Pause de scène (« * * * ») — trois petites étoiles ──
+        if(para.type==='sceneBreak'){
+          if(y>H-mBas-16){
+            numPage(); nouvellePage(); numPage();
+            doc.setFont(F_CORPS,'normal'); doc.setFontSize(11); doc.setTextColor(...ENCRE);
+            y=mHaut+6;
+          }
+          const pas=6;
+          etoilePdf(doc, W/2-pas, y-2, 1.1);
+          etoilePdf(doc, W/2, y-2, 1.1);
+          etoilePdf(doc, W/2+pas, y-2, 1.1);
+          y+=9; first=true; // paragraphe suivant non indenté, comme en ouverture de chapitre
+          return;
+        }
         // ── Bulle texto ──────────────────────────────────────
         if(para.type==='texto'){
           const droite=para.cote==='droite';
           const maxBulle=tW()*0.62; // bulle max 62% de la largeur
-          doc.setFont('Times','normal'); doc.setFontSize(9);
+          doc.setFont(F_CORPS,'normal'); doc.setFontSize(9);
           const lignesMsg=doc.splitTextToSize(para.msg, maxBulle-6);
           const lignesNom=para.nom ? doc.splitTextToSize(para.nom, maxBulle-6) : [];
           const hauteurContenu=(lignesNom.length*4.5)+(lignesMsg.length*4.5)+5;
@@ -2745,7 +2866,7 @@ async function exportPdf(){
 
           if(y+hautF>H-mBas-5){
             numPage(); nouvellePage(); numPage();
-            doc.setFont('Times','normal'); doc.setFontSize(11); doc.setTextColor(0);
+            doc.setFont(F_CORPS,'normal'); doc.setFontSize(11); doc.setTextColor(...ENCRE);
             y=mHaut+6;
           }
 
@@ -2759,37 +2880,70 @@ async function exportPdf(){
           // Nom expéditeur
           let yy=y+1;
           if(para.nom){
-            doc.setFont('Times','bolditalic'); doc.setFontSize(8); doc.setTextColor(100,100,100);
+            doc.setFont(F_CORPS,'bolditalic'); doc.setFontSize(8); doc.setTextColor(100,100,100);
             doc.text(para.nom, xBulle+3, yy);
             yy+=4.5;
           }
           // Message
-          doc.setFont('Times','normal'); doc.setFontSize(9); doc.setTextColor(30,30,30);
+          doc.setFont(F_CORPS,'normal'); doc.setFontSize(9); doc.setTextColor(30,30,30);
           lignesMsgF.forEach(l=>{ doc.text(l, xBulle+3, yy); yy+=4.5; });
-          doc.setTextColor(0);
+          doc.setTextColor(...ENCRE);
 
           y+=hautF+3;
           first=false;
           return;
         }
+
         const {segs, align} = para;
         const ind=(first && align==='justify')?0:7;
         // Pour centré/droite : pas d'indentation, pas de justification
         const larg= align==='justify' ? tW()-ind : tW();
-        const lignes=decouperEnLignes(segs, larg);
 
-        lignes.forEach((ligne,li)=>{
-          if(y>H-mBas-5){
+        // ── Lettrine (première lettre agrandie du tout premier paragraphe) ──
+        let wLettrine=0, lettrineChar='', segsPourDecoupe=segs;
+        if(para.lettrine && segs.length && segs[0].t){
+          lettrineChar=segs[0].t.charAt(0);
+          segsPourDecoupe=[{...segs[0], t:segs[0].t.slice(1)}, ...segs.slice(1)];
+          doc.setFont(F_TITRE,'bold'); doc.setFontSize(26);
+          wLettrine=doc.getTextWidth(lettrineChar)+1.5;
+          doc.setFont(F_CORPS,'normal'); doc.setFontSize(11);
+        }
+
+        const lignes=decouperEnLignes(segsPourDecoupe, larg, para.lettrine ? larg-wLettrine : undefined);
+
+        // ── Anti-veuve/orpheline ──────────────────────────────
+        // Si une seule ligne de ce paragraphe tiendrait en bas de la page
+        // courante (orpheline), on renvoie tout le paragraphe à la page
+        // suivante. S'il n'en resterait qu'une seule, isolée, en haut de la
+        // page suivante (veuve), on en laisse une de moins ici pour qu'il
+        // en parte au moins deux ensemble.
+        let limiteBasPara=H-mBas-5;
+        if(align!=='center' && align!=='right' && lignes.length>1){
+          const nbTiennent=Math.max(0, Math.floor((limiteBasPara-y)/LH));
+          if(nbTiennent===1){
             numPage(); nouvellePage(); numPage();
-            doc.setFont('Times','normal'); doc.setFontSize(11); doc.setTextColor(0);
+            doc.setFont(F_CORPS,'normal'); doc.setFontSize(11); doc.setTextColor(...ENCRE);
             y=mHaut+6;
+          } else if(nbTiennent>0 && nbTiennent===lignes.length-1){
+            limiteBasPara-=LH;
           }
+        }
+
+        let yDepartLettrine=null;
+        lignes.forEach((ligne,li)=>{
+          if(y>limiteBasPara){
+            numPage(); nouvellePage(); numPage();
+            doc.setFont(F_CORPS,'normal'); doc.setFontSize(11); doc.setTextColor(...ENCRE);
+            y=mHaut+6;
+            limiteBasPara=H-mBas-5; // page fraîche : le plafond anti-veuve ne s'applique plus
+          }
+          if(li===0 && para.lettrine) yDepartLettrine=y;
 
           if(align==='center' || align==='right'){
             // Calculer la largeur réelle de la ligne pour centrer/aligner
             let largLigne=0;
             ligne.segs.forEach((s,si)=>{
-              doc.setFont('Times', s.style==='bold'||s.style==='bolditalic'?s.style:s.style==='italic'?'italic':'normal');
+              doc.setFont(F_CORPS, s.style==='bold'||s.style==='bolditalic'?s.style:s.style==='italic'?'italic':'normal');
               largLigne+=doc.getTextWidth(s.t);
               if(si<ligne.segs.length-1) largLigne+=doc.getTextWidth(' ');
             });
@@ -2801,8 +2955,9 @@ async function exportPdf(){
             });
             ecrireLigne(segsAvecEspaces, xBase, largLigne, false);
           } else {
-            const xBase=mL()+(li===0?ind:0);
-            const largeurDispo=tW()-(li===0?ind:0);
+            const decalageLettrine=(li===0 && para.lettrine) ? wLettrine : 0;
+            const xBase=mL()+(li===0?ind:0)+decalageLettrine;
+            const largeurDispo=tW()-(li===0?ind:0)-decalageLettrine;
             const justifier=!ligne.fin && ligne.segs.length>1;
             const segsAvecEspaces=[];
             ligne.segs.forEach((s,si)=>{
@@ -2811,8 +2966,15 @@ async function exportPdf(){
             });
             ecrireLigne(segsAvecEspaces, xBase, largeurDispo, justifier);
           }
-          y+=6.5;
+          y+=LH;
         });
+
+        if(para.lettrine && yDepartLettrine!=null){
+          doc.setFont(F_TITRE,'bold'); doc.setFontSize(26); doc.setTextColor(...ACCENT);
+          doc.text(lettrineChar, mL()+ind, yDepartLettrine+2);
+          doc.setTextColor(...ENCRE); doc.setFont(F_CORPS,'normal'); doc.setFontSize(11);
+        }
+
         y+=1.5; first=false;
       });
       numPage();

@@ -248,6 +248,31 @@ function alignerTexte(align){
 
 function fmt(cmd){ document.execCommand(cmd,false,null); document.getElementById('editor').focus(); }
 
+// Marque (ou démarque) tout le paragraphe courant comme un « repère »
+// (date, narrateur…) en le passant en doré — ni sélection ni surlignage
+// à faire soi-même. Les exports (PDF pour l'instant) s'en servent pour ne
+// pas y poser de lettrine, même si ce repère est le tout premier élément
+// du chapitre.
+const REPERE_COULEUR = '#b8892a';
+function marquerRepere(){
+  const ed=document.getElementById('editor');
+  const sel=window.getSelection();
+  if(!sel.rangeCount) return;
+  let node=sel.getRangeAt(0).startContainer;
+  if(node.nodeType===3) node=node.parentElement;
+  const bloc=node?.closest?.('#editor > p, #editor > div');
+  if(!bloc) return;
+  const range=document.createRange();
+  range.selectNodeContents(bloc);
+  sel.removeAllRanges(); sel.addRange(range);
+  const actuel=document.queryCommandValue('foreColor');
+  const dejaMarque=/184,\s*137,\s*42/.test(actuel) || new RegExp(REPERE_COULEUR.slice(1),'i').test(actuel);
+  document.execCommand('foreColor', false, dejaMarque ? '#1a1410' : REPERE_COULEUR);
+  sel.removeAllRanges();
+  ed.focus();
+  edChange();
+}
+
 // Nettoyer le HTML de l'éditeur (divs → p, texte brut → p)
 function nettoyerEditeur(){
   const ed=document.getElementById('editor');
@@ -2732,7 +2757,10 @@ async function exportPdf(){
         }
         const styleAlign=(n.style?.textAlign||'').toLowerCase();
         const align=styleAlign==='center'?'center':styleAlign==='right'?'right':'justify';
-        const lettrine=premierParaTexte && align==='justify';
+        // Repère (date, narrateur…) marqué en doré via marquerRepere() dans
+        // l'éditeur — jamais de lettrine dessus, même s'il tombe en premier.
+        const estRepere=/184,\s*137,\s*42|#?b8892a/i.test(n.innerHTML);
+        const lettrine=premierParaTexte && align==='justify' && !estRepere;
         paras.push({segs, align, lettrine});
         if(lettrine) premierParaTexte=false;
       });

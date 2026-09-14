@@ -2681,10 +2681,13 @@ async function exportPdf(){
       if(!ch.contenu) return;
 
       const tmp=document.createElement('div'); tmp.innerHTML=ch.contenu; normaliserTypoNode(tmp);
-      //   (espace fine insécable) n'existe pas dans les polices embarquées —
-      // la coupure de ligne est de toute façon gérée à la main ici, donc sa
-      // largeur ne joue aucun rôle ; on la ramène à une espace normale.
-      tmp.innerHTML = tmp.innerHTML.split(' ').join(' ');
+      // L'espace fine insécable ( , après les cadratins, avant !?:;
+      // et les guillemets) n'a pas de glyphe dans les polices embarquées —
+      // on la ramène à une espace insécable normale ( ), qui existe
+      // dans la police ET reste non-sécable au découpage des lignes plus
+      // bas (voir decouperEnLignes :   n'y est jamais un point de
+      // coupure), pour ne pas séparer « — » ou « mot !» en fin de ligne.
+      tmp.innerHTML = tmp.innerHTML.split(' ').join(' ');
 
       // Extraire les segments avec leur style depuis un nœud DOM
       function extraireSegments(noeud){
@@ -2706,8 +2709,10 @@ async function exportPdf(){
 
       // Construire la liste de paragraphes : {segs, align, lettrine} normal,
       // {type:'texto', cote, nom, msg} pour une bulle, {type:'sceneBreak'}
-      // pour un "* * *" — le tout premier paragraphe de texte est marqué
-      // pour recevoir la lettrine.
+      // pour un "* * *" — le premier paragraphe justifié reçoit la lettrine
+      // (pas forcément le tout premier élément : une ligne centrée avant —
+      // narrateur, date — n'en a pas besoin, mais ne doit pas non plus en
+      // priver le vrai début du texte qui la suit).
       const paras=[];
       let premierParaTexte=true;
       tmp.childNodes.forEach(n=>{
@@ -2716,7 +2721,6 @@ async function exportPdf(){
           const nom=(n.querySelector('.texto-nom')?.innerText||'').trim();
           const msg=(n.querySelector('.texto-msg')?.innerText||'').trim();
           if(msg) paras.push({type:'texto', cote, nom, msg});
-          premierParaTexte=false;
           return;
         }
         const segs=extraireSegments(n);
@@ -2724,13 +2728,13 @@ async function exportPdf(){
         if(!texte) return;
         if(/^\*{2,}$/.test(texte.replace(/\s+/g,''))){
           paras.push({type:'sceneBreak'});
-          premierParaTexte=false;
           return;
         }
         const styleAlign=(n.style?.textAlign||'').toLowerCase();
         const align=styleAlign==='center'?'center':styleAlign==='right'?'right':'justify';
-        paras.push({segs, align, lettrine: premierParaTexte && align==='justify'});
-        premierParaTexte=false;
+        const lettrine=premierParaTexte && align==='justify';
+        paras.push({segs, align, lettrine});
+        if(lettrine) premierParaTexte=false;
       });
 
       doc.setFont(F_CORPS,'normal'); doc.setFontSize(11);
@@ -2819,8 +2823,11 @@ async function exportPdf(){
         }
         segs.forEach(seg=>{
           const style=(seg.bold&&seg.italic)?'bolditalic':seg.bold?'bold':seg.italic?'italic':'normal';
-          // Tokeniser : mots et espaces
-          seg.t.split(/(\s+)/).forEach(tok=>{
+          // Tokeniser : mots et espaces —  /  (espaces insécables,
+          // ex. après un cadratin ou avant !?:;) ne sont volontairement PAS
+          // des points de coupure : ils restent collés au token voisin pour
+          // ne jamais se retrouver seuls en fin ou en début de ligne.
+          seg.t.split(/([^\S  ]+)/).forEach(tok=>{
             if(!tok) return;
             if(/^\s+$/.test(tok)){
               // espace entre mots — géré dans ajouterMot

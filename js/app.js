@@ -653,11 +653,15 @@ function repairerContenu(){
 function save(){
   ltClearMarks();
   const c = P.chapitres[chapI];
+  const html = document.getElementById('editor').innerHTML;
   const t = document.getElementById('editor').innerText || '';
   const nouveauTexte = t.replace(/\s+/g, ' ').trim();
 
-  // Ne rien changer si le texte n'a pas bougé
-  if(c._texteRef === nouveauTexte){
+  // Ne rien changer si ni le texte ni le HTML n'ont bougé — un formatage pur
+  // (alignement, gras, italique, couleur/repère…) ne change pas le texte
+  // mais doit quand même être sauvegardé, d'où la comparaison sur le HTML
+  // en plus du texte.
+  if(c._texteRef === nouveauTexte && c.contenu === html){
     updateWC();
     return;
   }
@@ -669,8 +673,8 @@ function save(){
     return;
   }
 
-  // Le texte a changé — comptage absolu depuis le DOM
-  c.contenu = document.getElementById('editor').innerHTML;
+  // Le texte ou le formatage a changé — comptage absolu depuis le DOM
+  c.contenu = html;
   c.mots = nouveauTexte ? nouveauTexte.split(/\s+/).length : 0;
   c._dirty = true;
   c._texteRef = nouveauTexte;

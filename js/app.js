@@ -2775,7 +2775,7 @@ async function exportPdf(){
           || (segs.length>0 && segs.every(s=>s.italic || !s.t.trim()))
           || etiquetteCourte;
         const lettrine=premierParaTexte && align==='justify' && !estRepere;
-        paras.push({segs, align, lettrine, estRepere});
+        paras.push({segs, align, lettrine});
         if(lettrine) premierParaTexte=false;
       });
 
@@ -2943,10 +2943,7 @@ async function exportPdf(){
           return;
         }
 
-        const align = para.align;
-        // Repère : rendu en italique pour se distinguer visuellement du
-        // texte courant, même s'il n'était pas déjà italique dans l'éditeur.
-        const segs = para.estRepere ? para.segs.map(s=>({...s, italic:true})) : para.segs;
+        const {segs, align} = para;
         const ind=(first && align==='justify')?0:7;
         // Pour centré/droite : pas d'indentation, pas de justification
         const larg= align==='justify' ? tW()-ind : tW();

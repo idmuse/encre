@@ -69,7 +69,8 @@
   <div id="ez">
     <div id="etb">
       <span id="chap-n">1.</span>
-      <input id="chap-ti" placeholder="Titre du chapitre (optionnel)…" oninput="titreChap(this.value)" title="« Chapitre N » s'affiche toujours automatiquement à l'export PDF — ce champ n'ajoute qu'un vrai titre en plus, si tu en veux un">
+      <input id="chap-ti" placeholder="Chapitre 1…" oninput="titreChap(this.value)" title="Numérotation ou libellé (ex. « Prologue », « Épilogue »…) — affiché tel quel à l'export PDF, ou « Chapitre N » si vide">
+      <input id="chap-titre2" placeholder="Titre du chapitre (optionnel)…" oninput="titreChapReel(this.value)" title="Un vrai titre, affiché sous le libellé à l'export PDF — laissé vide, il n'apparaît pas">
       <input id="chap-narr" placeholder="Narrateur (optionnel)…" oninput="narrateurChap(this.value)" title="Affiché sous le titre à l'export PDF — laissé vide, il n'apparaît pas">
       <span id="wc">0 mots</span>
     </div>

@@ -1,11 +1,12 @@
 // Service Worker — Encrier
+// v10 : ajout du mode sépia (css/sepia.css) à la précharge.
 // v9 : ajout des polices d'export PDF (fonts/*.ttf) et des scripts de
 // césure (js/vendor/*) à la précharge, pour que l'export PDF marche aussi
 // hors ligne. v8 : stratégie "réseau d'abord" pour les pages et le code de
 // l'appli, avec repli sur le cache si hors ligne. La v7 servait tout
 // "cache d'abord", ce qui pouvait figer des appareils sur une vieille
 // version même après un déploiement.
-const CACHE = 'encre-v9';
+const CACHE = 'encre-v10';
 
 const ASSETS = [
   './',
@@ -21,6 +22,7 @@ const ASSETS = [
   './favicon.svg',
   './css/main.css',
   './css/dark.css',
+  './css/sepia.css',
   './js/app.js',
   './js/stats.js',
   './js/theme.js',

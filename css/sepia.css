@@ -1,0 +1,24 @@
+/* ── Mode sépia — encre ──────────────────────────────────
+   Un entre-deux plus doux que le blanc du mode jour, sans passer
+   au mode nuit — pensé pour l'écriture longue à la lumière du jour.
+   S'active quand <html> a la classe .sepia. Repose sur la même
+   structure que le mode jour (encre foncée sur fond clair), donc
+   aucun des correctifs de fond sombre du mode nuit n'est nécessaire.
+   ─────────────────────────────────────────────────────── */
+
+html.sepia {
+  --ink:     #3a2f1e;
+  --ink2:    #5c4c36;
+  --ink3:    #8a7358;
+  --ink4:    #ab9478;
+  --paper:   #ede1c8;
+  --paper2:  #e4d5b0;
+  --paper3:  #d8c49a;
+  --accent:  #8b3a2a;
+  --accent2: #a0503a;
+  --gold:    #a87820;
+}
+
+/* Scrollbars */
+html.sepia ::-webkit-scrollbar { background: var(--paper2); }
+html.sepia ::-webkit-scrollbar-thumb { background: var(--paper3); border-radius: 4px; }

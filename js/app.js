@@ -91,10 +91,51 @@ try {
     });
 } catch(e) {}
 
+// ── Préférences d'affichage de l'éditeur (zoom, police) ────
+// Purement visuelles, mémorisées par appareil (localStorage) : n'écrivent
+// jamais rien dans le contenu du chapitre, donc aucun impact à l'export —
+// qui garde toujours ses propres polices, peu importe ce qui est affiché
+// à l'écran pendant l'écriture.
+const ZOOM_MIN=70, ZOOM_MAX=180, ZOOM_PAS=10;
+let _editeurZoomBase=null;
+function appliquerZoom(pct){
+  const ed=document.getElementById('editor');
+  if(!ed) return;
+  if(_editeurZoomBase===null) _editeurZoomBase=parseFloat(getComputedStyle(ed).fontSize);
+  pct=Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pct));
+  ed.style.fontSize=(_editeurZoomBase*pct/100)+'px';
+  const label=document.getElementById('zoom-pct');
+  if(label) label.textContent=pct+'%';
+  try{ localStorage.setItem('encre_zoom_editeur', pct); }catch(e){}
+}
+function zoomEditeur(direction){
+  if(direction===0){ appliquerZoom(100); return; }
+  const actuel=parseInt(localStorage.getItem('encre_zoom_editeur'),10)||100;
+  appliquerZoom(actuel+direction*ZOOM_PAS);
+}
+function changerPoliceEditeur(v){
+  const ed=document.getElementById('editor');
+  if(!ed) return;
+  ed.style.fontFamily=v;
+  try{ localStorage.setItem('encre_police_editeur', v); }catch(e){}
+}
+function chargerPrefsEditeur(){
+  let zoom=100, police="'Crimson Pro',serif";
+  try{
+    zoom=parseInt(localStorage.getItem('encre_zoom_editeur'),10)||100;
+    police=localStorage.getItem('encre_police_editeur')||police;
+  }catch(e){}
+  appliquerZoom(zoom);
+  changerPoliceEditeur(police);
+  const sel=document.getElementById('police-editeur');
+  if(sel) sel.value=police;
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') fermerModal?.(); });
   if(_EDITEUR){
     document.execCommand('defaultParagraphSeparator', false, 'p');
+    chargerPrefsEditeur();
 
     // ── Post-processeur dictée vocale ─────────────────────
     const DICT_REMPLACEMENTS = [

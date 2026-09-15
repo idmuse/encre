@@ -92,6 +92,19 @@
       <button class="fmt-btn" onclick="insererTexto('gauche')" title="Bulle texto — reçu (côté gauche)"><svg class="tb-ic" style="width:9px;height:9px;margin-right:-3px" viewBox="0 0 20 20"><path d="M13 5l-5 5 5 5"/></svg><svg class="tb-ic" style="transform:scaleX(-1)" viewBox="0 0 20 20"><path d="M3 4h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3 3v-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></button>
       <div class="fmt-sep"></div>
       <button class="fmt-btn" onclick="ouvrirModalCorrections()" title="Gérer mes corrections automatiques" style="font-size:10px;font-family:'JetBrains Mono',monospace">ABC</button>
+      <div class="fmt-sep"></div>
+      <!-- Affichage à l'écran seulement (zoom, police) : préférence par appareil,
+           jamais enregistrée dans le chapitre — n'a aucun effet sur l'export,
+           qui garde toujours ses propres polices pour que rien ne bouge. -->
+      <button class="fmt-btn" onclick="zoomEditeur(-1)" title="Réduire la taille du texte à l'écran (affichage seulement, sans effet sur l'export)">A−</button>
+      <span id="zoom-pct" onclick="zoomEditeur(0)" title="Réinitialiser à 100 %" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink4);min-width:32px;text-align:center;cursor:pointer;user-select:none">100%</span>
+      <button class="fmt-btn" onclick="zoomEditeur(1)" title="Agrandir la taille du texte à l'écran (affichage seulement, sans effet sur l'export)" style="font-size:17px">A+</button>
+      <select id="police-editeur" onchange="changerPoliceEditeur(this.value)" title="Police à l'écran seulement — n'affecte jamais l'export" style="font-family:'Crimson Pro',serif;font-size:12px;background:none;border:1px solid var(--paper3);border-radius:4px;color:var(--ink3);padding:3px 4px;margin-left:2px">
+        <option value="'Crimson Pro',serif">Crimson Pro</option>
+        <option value="'Playfair Display',serif">Playfair Display</option>
+        <option value="'IM Fell English',serif">IM Fell English</option>
+        <option value="'JetBrains Mono',monospace">Mono</option>
+      </select>
     </div>
     <div id="es">
       <div id="editor" contenteditable="true" spellcheck="true" lang="fr"
